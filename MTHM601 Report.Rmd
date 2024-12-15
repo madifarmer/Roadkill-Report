@@ -1,0 +1,22 @@
+---
+author: "7038293"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Title
+
+## Introduction
+
+## Objectives/Methodology
+
+## Data
+
+## Results
+
+## Limitations
+
+## Conclusion
