@@ -16,7 +16,23 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Data
 
 ## Results
+###Exploratory Analysis
+What I want to include:
+- Overall number of reports per month
+- Reports per season
+- Multiple maps of the UK showing reports per season 
+- Overall species' barchart 
+
+###Seasonal trends in roadkill
+
+### Spatial Trends in roadkill
 
 ## Limitations
 
 ## Conclusion
+
+## References
+
+## Reproducability
+
+All code and data files used for the analysis in this report can be found in a GitHub repository here: 
