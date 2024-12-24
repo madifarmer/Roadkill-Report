@@ -11,28 +11,72 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
+With the ever-changing climate, British wildlife face an uncertain future, with a major decline in biodiversity being found all around the UK. But another thing that could be adding to the decline in British wildlife is road-traffic-accidents as collisions with vehicles is one of the major causes of wild animal death in the UK [REFERENCE 1: <https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0258083#pone.0258083.ref033>]. For animals that are already under immense pressure due to anthropogenic and climate threats, roadkill could push some of these species to extinction.
+
 ## Objectives/Methodology
+
+The research questions I am hoping to answer are:
+
+1.   What are the spatial and seasonal trends in roadkill numbers?
+
+2.   Do temperature or rainfall play a role in roadkill prevalence?
+
+3.   Where are the roadkill hotspots across the UK?
+
+4.   Which species are most commonly recorded as roadkill?
 
 ## Data
 
-## Results
-###Exploratory Analysis
-What I want to include:
-- Overall number of reports per month
-- Reports per season
-- Multiple maps of the UK showing reports per season 
-- Overall species' barchart 
+### Roadkill Data
 
-###Seasonal trends in roadkill
+The data I will use is from The Road Lab [REFEERNCE 2: <https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Orders are removed.
+
+Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer” which were removed along with any other sightings that weren’t confirmed to a species level, so in total **X** were removed.
+
+Once all unneeded data was removed, I was left with **X** entries.
+
+### Seasonal/Weather Data
+
+This data will then be combined with data on the mean monthly temperature and total rainfall per month from the Met Office.
+
+### Spatial/Traffic Data
+
+Mean monthly traffic levels will also be used when looking into roadkill hotspots as a potential explanation for these hotspots.
+
+## Results
+
+### Exploratory Analysis
+
+What I want to include:
+
+-   Overall number of reports per month
+
+-   Reports per season
+
+-   Multiple maps of the UK showing reports per season
+
+-   Overall species' barchart
+
+### Seasonal trends in roadkill
 
 ### Spatial Trends in roadkill
 
 ## Limitations
 
+-   Larger species are more likely to be seen and reported
+
+-    Only covers animals that die immediately and not those that get out of the road before dying
+
+-   Citizen science always comes with limitations     
+
+-   Bias in sampling
+
+-   However, previous studies in South Africa (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2018.00015/full>)  and California have shown the identification data to be reliable (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2017.00089/full>)
+
 ## Conclusion
 
 ## References
 
-## Reproducability
+## Reproducibility
 
-All code and data files used for the analysis in this report can be found in a GitHub repository here: 
+All code and data files used for the analysis in this report can be found in a GitHub repository here:
