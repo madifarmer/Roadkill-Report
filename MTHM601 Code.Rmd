@@ -11,8 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Libraries
 
 ```{r}
-library(dplyr)
-library(lubridate)
+library(tidyverse)
+install.packages("patchwork")
+library(patchwork)
+
+
 ```
 
 ## Load datasets
@@ -45,12 +48,12 @@ rk <- roadkill_full %>%
 head(rk)
 ```
 
-Create dataset with only necessary columns and create a new csv file for it for ease of use. Using the dplyr package.
+Create dataset with only necessary columns. Using the dplyr package.
 
 ```{r}
 roadkill <- rk %>% select(species, Taxon.Rank, date, day, month, year, lat, long, country, Kingdom, Phylum, Class, Order, Family, Genus)
 
-write.csv(roadkill, "updated_roadkill_dataset.csv", row.names = FALSE)
+
 ```
 
 ### Add a season column
@@ -76,10 +79,327 @@ get_season <- function(month) {
 roadkill <- roadkill %>%
   mutate(season = sapply(month, get_season))
 
-# Preview the updated dataset
+
 head(roadkill)
 
-# Save the updated dataset to a new CSV file
-write.csv(roadkill, "updated_dataset_with_seasons.csv", row.names = FALSE)
+
+```
+
+Noticed that date is coming up as NA - so I will combine the day, month and year columns to create a new date column
+
+```{r}
+roadkill <- roadkill %>%
+  mutate(date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d"))
+
+head(roadkill)
+
+
+```
+
+### Format data types
+
+```{r}
+roadkill$day <- as.integer(roadkill$day)
+roadkill$month <- as.integer(roadkill$month)
+roadkill$year <- as.integer(roadkill$year)
+roadkill$species <- as.factor(roadkill$species)
+roadkill$Taxon.Rank <-as.factor(roadkill$Taxon.Rank)
+roadkill$lat <- as.integer(roadkill$lat)
+roadkill$long <- as.integer(roadkill$long)
+roadkill$country <-as.factor(roadkill$country)
+roadkill$Kingdom <-as.factor(roadkill$Kingdom)
+roadkill$Phylum <-as.factor(roadkill$Phylum)
+roadkill$Class <-as.factor(roadkill$Class)
+roadkill$Order <-as.factor(roadkill$Order)
+roadkill$Family <-as.factor(roadkill$Family)
+roadkill$Genus <-as.factor(roadkill$Genus)
+roadkill$season <-as.factor(roadkill$season)
+
+str(roadkill)
+```
+
+### Remove all birds and reptiles - only keep mammals
+
+```{r}
+
+mammal_roadkill <- roadkill %>%
+  filter(grepl("mammalia", Class, ignore.case = TRUE))
+
+# Preview the updated dataset
+head(mammal_roadkill)
+str(mammal_roadkill)
+
+# Save the filtered dataset
+write.csv(data, "filtered_dataset_mammals_only.csv", row.names = FALSE)
+
+```
+
+### Remove any NAs or blanks
+
+```{r}
+
+mammal_roadkill <- mammal_roadkill %>%
+  mutate(species = trimws(species)) %>% 
+  filter(species != "", !is.na(species)) 
+
+head(mammal_roadkill)
+str(mammal_roadkill)
+
+```
+
+### Unique species
+
+```{r}
+unique(mammal_roadkill$species)
+```
+
+### Remove "indet.deer" and "polecat-ferret hybrid" and "rabbit and hares"
+
+Because they are not to a species level, I opted to remove any rows that were called these things.
+
+```{r}
+mammal_roadkill <- mammal_roadkill %>%
+  filter(!species %in% c("Indet. Deer", "Polecat-Ferret", "rabbits and hares"))
+```
+
+### Standardise species names
+
+Some species were hard to identify to species level, so I decided to group them. Also grey squirrel and squirrel, I grouped as Red Squirrels are rare in most parts of the country.
+
+```{r}
+
+mammal_roadkill <- mammal_roadkill %>%
+  mutate(species = case_when(
+    species %in% c("Eastern Grey Squirrel", "Squirrel") ~ "Grey Squirrel",
+    species %in% c("Brown Rat", "Rat spp.") ~ "Rats",
+    species %in% c("Wood Mouse", "House Mouse", "Small Mouse", "Yellow-necked Mouse") ~ "Mice",
+    species %in% c("Bat", "Pipistrelle Bat species", "Soprano Pipistrelle", "Brown Long-eared Bat", "Pipistrelle") ~ "Bats",
+    species %in% c("Field Vole", "Bank Vole", "Vole") ~ "Voles",
+    species %in% c("Brown Hare", "Mountain Hare", "Irish Hare") ~ "Hares",
+    TRUE ~ species 
+  ))
+
+
+# View the updated dataset
+head(mammal_roadkill)
+unique(mammal_roadkill$species)
+
+```
+
+### Create new CSV file 
+
+Now that I have finished with the data wrangling, I will create a new CSV file.
+
+```{r}
+write.csv(mammal_roadkill, "updated_roadkill.csv", row.names = FALSE)
+```
+
+### Exploratory Data Visualisation
+
+#### Monthly reports
+
+```{r}
+monthly_yearly_data <- mammal_roadkill %>%
+  group_by(year, month) %>%
+  summarise(total_roadkill = n())
+
+# Convert month numbers to names (if applicable)
+monthly_yearly_data <- monthly_yearly_data %>%
+  mutate(month = factor(month, levels = 1:12, labels = month.name))
+
+# Preview the aggregated data
+print(monthly_yearly_data)
+
+
+```
+
+Heatmap
+
+```{r}
+ggplot(monthly_yearly_data, aes(x = month, y = year, fill = total_roadkill)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "lightblue", high = "red", na.value = "gray90") +
+  theme_minimal() +
+  labs(
+    title = "Monthly Roadkill Incidents by Year",
+    x = "Month",
+    y = "Year",
+    fill = "Total Roadkill"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+p2 <- ggplot(monthly_yearly_data, aes(x = month, y = total_roadkill, group = year, color = factor(year))) +
+  geom_line() +
+  theme_minimal() +
+  labs(
+    title = "Monthly Roadkill Trends by Year",
+    x = "Month",
+    y = "Total Roadkill",
+    color = "Year"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p2
+```
+
+```{r}
+ggplot(monthly_yearly_data, aes(x = month, y = total_roadkill)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  theme_minimal() +
+  labs(
+    title = "Monthly Roadkill Counts",
+    x = "Month",
+    y = "Total Roadkill"
+  ) +
+  facet_wrap(~year) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+monthly_roadkill <- mammal_roadkill %>%
+  group_by(year, month) %>%
+  summarise(reports = n(), .groups = "drop")
+
+monthly_roadkill <- monthly_roadkill %>%
+  mutate(date = as.Date(paste(year, month, 1, sep = "-")))
+
+head(monthly_roadkill)
+
+
+ggplot(monthly_roadkill, aes(x = date, y = reports)) +
+  geom_line(color = "black", linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "Monthly Roadkill Reports",
+    x = "Date",
+    y = "Reports"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(color = "gray", size = 0.3),
+    panel.grid.minor = element_line(color = "gray", size = 0.1)
+  )
+
+
+```
+
+```{r}
+p1 <- ggplot(monthly_roadkill, aes(x = date, y = reports)) +
+  geom_line(color = "black", linewidth = 1) +
+  geom_point(data = filter(monthly_roadkill, year == 2019 & month == 7),
+             aes(x = date, y = reports), color = "red", size = 3) +
+  theme_minimal() +
+  labs(
+    title = "Monthly Roadkill Reports (2014-2024)",
+    x = "Date",
+    y = "Reports"
+  )
+
+```
+
+Facet plots
+
+```{r}
+p1 + p2
+```
+
+## Scale spike in 2019
+
+```{r}
+library(dplyr)
+
+scaled_data <- mammal_roadkill %>%
+  group_by(species, year, month) %>%
+  summarise(monthly_total = n(), .groups = "drop") %>%  
+  group_by(species, year) %>%
+  mutate(
+    annual_total = sum(monthly_total), 
+    monthly_percentage = round((monthly_total / annual_total) * 100, 1) 
+  ) %>%
+  ungroup()
+
+head(scaled_data)
+
+
+```
+
+As in PAPER, I will normalise the spike in July and August 2019.
+
+```{r}
+
+set.seed(222) 
+
+adjusted_data <- scaled_data %>%
+  group_by(species) %>%
+  mutate(adjusted_count = case_when(
+    year == 2019 & month == 7 & monthly_total > 1 ~ round(monthly_total * 2 / 3), 
+    year == 2019 & month == 8 & monthly_total > 1 ~ round(monthly_total / 2),    
+    TRUE ~ monthly_total 
+  )) %>%
+  ungroup()
+
+#Subsampling repeated 10,000 times and taking the mean count
+adjusted_data <- adjusted_data %>%
+  group_by(species, year, month) %>%
+  summarise(
+    mean_adjusted_count = mean(replicate(10000, {
+      if (year == 2019 & month == 7 && monthly_total > 1) {
+        round(monthly_total * 2 / 3)
+      } else if (year == 2019 & month == 8 && monthly_total > 1) {
+        round(monthly_total / 2)
+      } else {
+        monthly_total
+      }
+    })),
+    .groups = "drop"
+  )
+
+head(adjusted_data)
+
+
+```
+
+Plot this adjusted data
+
+```{r}
+
+library(dplyr)
+
+total_adjusted_data <- adjusted_data %>%
+  group_by(year, month, date) %>% 
+  summarise(total_reports = sum(mean_adjusted_count, na.rm = TRUE), .groups = "drop")
+
+head(total_adjusted_data)
+
+
+ggplot(total_adjusted_data, aes(x = date, y = total_reports)) +
+  geom_line(color = "black", linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "Total Adjusted Monthly Roadkill Reports (2014-2024)",
+    x = "Date",
+    y = "Total Adjusted Reports"
+  ) +
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Met-Office data
+
+Rainfall and temperature data from the met office don't download to excel files, just txt URLs so I have to load these datasets in a different way.
+
+```{r}
+tempURL <- "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/Tmean/date/UK.txt"
+
+temp <- read.table(tempURL, header = TRUE, skip = 7, stringsAsFactors = FALSE)
+
+rainURL <- "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/Rainfall/date/UK.txt" 
+
+rain <- read.table(rainURL, header = TRUE, skip = 7, stringsAsFactors = FALSE)
+
 
 ```

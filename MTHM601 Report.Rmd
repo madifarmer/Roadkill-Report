@@ -40,15 +40,17 @@ The four main questions I am hoping to answer are:
 
 ### Roadkill Data
 
-The data I will use is from The Road Lab (formerly 'Project Splatter') [<https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Orders are removed.
+The data I will use is from The Road Lab (formerly 'Project Splatter') [<https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Classes are removed.
 
-Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer” which were removed along with any other sightings that weren’t confirmed to a species level, so in total **X** were removed.
+Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were removed.
 
-Once all unneeded data was removed, I was left with **X** entries.
+Once all unneeded data was removed, I was left with 42810 entries.
+
+It is important to note that there is a large spike in reports in July 2019, I have decided to leave this data as is but it is worth noting. It may be due to a BBC article posted [<https://www.bbc.co.uk/news/science-environment-48886673>]
 
 ### Seasonal/Weather Data
 
-This data will then be combined with data on the mean monthly temperature and total rainfall per month from the Met Office.
+This data will then be combined with data on the mean monthly temperature and total rainfall per month from the Met Office. [<https://www.metoffice.gov.uk/research/climate/maps-and-data/uk-and-regional-series>]
 
 According to the met office, the seasons will be split into months. Spring = MArch, April, May, Summer = June, July, August, Autumn = September, October, November and Winter = December, January and February
 
@@ -64,6 +66,12 @@ What I want to include:
 
 -   Overall number of reports per month
 
+![](images/clipboard-2590066528.png)
+
+![](images/clipboard-2576866133.png)
+
+Graph showing the
+
 -   Reports per season
 
 -   Multiple maps of the UK showing reports per season
@@ -76,15 +84,23 @@ What I want to include:
 
 ## Limitations
 
+### Limitations of the data
+
 -   Larger species are more likely to be seen and reported
 
 -   Only covers animals that die immediately and not those that get out of the road before dying
 
 -   Citizen science always comes with limitations
 
--   Bias in sampling
+-   Bias in sampling - massive increase after coverage in the news but only lasted for 2 months
 
--   However, previous studies in South Africa (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2018.00015/full>) and California have shown the identification data to be reliable (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2017.00089/full>)
+-   However, previous studies in South Africa [@periquet_testing_2018] and California have shown the identification data to be reliable [@waetjen_large_2017]
+
+### Limitations of the analysis
+
+Correlation does not mean causation!
+
+My data is not completely normal so some analyses may not be completely accurate
 
 ## Conclusion
 
