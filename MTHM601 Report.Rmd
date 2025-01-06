@@ -1,6 +1,8 @@
 ---
 author: "7038293"
 output: pdf_document
+bibliography: roadkill.bib
+csl: ieee.csl
 ---
 
 ```{r setup, include=FALSE}
@@ -11,25 +13,31 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-With the ever-changing climate, British wildlife face an uncertain future, with a major decline in biodiversity being found all around the UK. But another thing that could be adding to the decline in British wildlife is road-traffic-accidents as collisions with vehicles is one of the major causes of wild animal death in the UK [REFERENCE 1: <https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0258083#pone.0258083.ref033>]. For animals that are already under immense pressure due to anthropogenic and climate threats, roadkill could push some of these species to extinction.
+**Topics:** Data Wrangling, Advanced Visualisation, Hierarchical Modelling, Spatial Visualisation, Temporal Trends
+
+With the ever-changing climate, British wildlife face an uncertain future, with a major decline in biodiversity being found all around the United Kingdom. But another thing that could be adding to the decline in British wildlife is road-traffic-accidents; collisions with vehicles is one of the major causes of wild animal death in the UK [@raymond_temporal_2021]. For animals that are already under immense pressure due to anthropogenic and climate threats, roadkill could push some of these species to extinction.
+
+This report aims to provide a comprehensive exploration of roadkill trends across the UK, leveraging data science techniques to address questions about its spatial, temporal and environmental dynamics, with a specific focus on mammals.
+
+Focusing on mammals is particularly relevant due to their ecological importance and the disproportionate impact of roadkill on their populations. Many mammal species are wide ranging with large territories that are increasingly being split up by roads, making them more vulnerable to collisions. By narrowing the scope to mammals, this study aims to provide actionable insights for mitigating roadkill impacts on vulnerable mammalian species.
+
+The four main questions I am hoping to answer are:
+
+1.  What are the spatial and seasonal trends in mammalian roadkill numbers?
+
+2.  Do temperature or rainfall play a role in mammalian roadkill prevalence?
+
+3.  Where are the mammalian roadkill hotspots across the UK?
+
+4.  Which mammalian species are most commonly recorded as roadkill?
 
 ## Objectives/Methodology
-
-The research questions I am hoping to answer are:
-
-1.   What are the spatial and seasonal trends in roadkill numbers?
-
-2.   Do temperature or rainfall play a role in roadkill prevalence?
-
-3.   Where are the roadkill hotspots across the UK?
-
-4.   Which species are most commonly recorded as roadkill?
 
 ## Data
 
 ### Roadkill Data
 
-The data I will use is from The Road Lab [REFEERNCE 2: <https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Orders are removed.
+The data I will use is from The Road Lab (formerly 'Project Splatter') [<https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Orders are removed.
 
 Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer” which were removed along with any other sightings that weren’t confirmed to a species level, so in total **X** were removed.
 
@@ -65,7 +73,7 @@ What I want to include:
 
 -   Larger species are more likely to be seen and reported
 
--    Only covers animals that die immediately and not those that get out of the road before dying
+-   Only covers animals that die immediately and not those that get out of the road before dying
 
 -   Citizen science always comes with limitations     
 
@@ -75,8 +83,8 @@ What I want to include:
 
 ## Conclusion
 
-## References
-
 ## Reproducibility
 
 All code and data files used for the analysis in this report can be found in a GitHub repository here:
+
+## References
