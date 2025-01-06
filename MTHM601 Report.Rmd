@@ -1,5 +1,10 @@
 ---
-author: "7038293"
+title: |
+  \vspace{-2cm}
+  \begin{flushright}
+  {\small \textit{Student ID: 7038293}}
+  \end{flushright}
+  Analysing Roadkill Trends in the UK: Identifying Spatial and Temporal Patterns
 output: pdf_document
 bibliography: roadkill.bib
 csl: ieee.csl
@@ -9,11 +14,9 @@ csl: ieee.csl
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Title
-
 ## Introduction
 
-**Topics:** Data Wrangling, Advanced Visualisation, Hierarchical Modelling, Spatial Visualisation, Temporal Trends
+**Topics:** Data Wrangling, Advanced Visualisation, RMarkdown, Hierarchical Modelling, Spatial Visualisation, Temporal Trends
 
 With the ever-changing climate, British wildlife face an uncertain future, with a major decline in biodiversity being found all around the United Kingdom. But another thing that could be adding to the decline in British wildlife is road-traffic-accidents; collisions with vehicles is one of the major causes of wild animal death in the UK [@raymond_temporal_2021]. For animals that are already under immense pressure due to anthropogenic and climate threats, roadkill could push some of these species to extinction.
 
@@ -47,6 +50,8 @@ Once all unneeded data was removed, I was left with **X** entries.
 
 This data will then be combined with data on the mean monthly temperature and total rainfall per month from the Met Office.
 
+According to the met office, the seasons will be split into months. Spring = MArch, April, May, Summer = June, July, August, Autumn = September, October, November and Winter = December, January and February
+
 ### Spatial/Traffic Data
 
 Mean monthly traffic levels will also be used when looking into roadkill hotspots as a potential explanation for these hotspots.
@@ -75,11 +80,11 @@ What I want to include:
 
 -   Only covers animals that die immediately and not those that get out of the road before dying
 
--   Citizen science always comes with limitations     
+-   Citizen science always comes with limitations
 
 -   Bias in sampling
 
--   However, previous studies in South Africa (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2018.00015/full>)  and California have shown the identification data to be reliable (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2017.00089/full>)
+-   However, previous studies in South Africa (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2018.00015/full>) and California have shown the identification data to be reliable (REF: <https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2017.00089/full>)
 
 ## Conclusion
 

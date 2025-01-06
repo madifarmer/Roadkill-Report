@@ -1,0 +1,85 @@
+---
+title: "Code for MTHM601 report"
+output: html_document
+date: "2025-01-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r}
+library(dplyr)
+library(lubridate)
+```
+
+## Load datasets
+
+```{r}
+roadkill_full <- read.csv("records-2024-12-03.csv")
+```
+
+## Data Wrangling
+
+### Rename columns
+
+Using the dplyr package, rename columns so they are more manageable.
+
+```{r}
+head(roadkill_full)
+
+rk <- roadkill_full %>% 
+  rename(
+    species = Common.name,
+    date = Start.date,
+    day = Start.date.day,
+    month = Start.date.month,
+    year = Start.date.year,
+    lat = Latitude..WGS84.,
+    long = Longitude..WGS84.,
+    country = State.Province
+  )
+
+head(rk)
+```
+
+Create dataset with only necessary columns and create a new csv file for it for ease of use. Using the dplyr package.
+
+```{r}
+roadkill <- rk %>% select(species, Taxon.Rank, date, day, month, year, lat, long, country, Kingdom, Phylum, Class, Order, Family, Genus)
+
+write.csv(roadkill, "updated_roadkill_dataset.csv", row.names = FALSE)
+```
+
+### Add a season column
+
+I am interested in seasonal variation, not just the exact date so I am going to use an if-else function to create a season column.
+
+```{r}
+get_season <- function(month) {
+  if (month %in% c(12, 1, 2)) {
+    return("Winter")
+  } else if (month %in% c(3, 4, 5)) {
+    return("Spring")
+  } else if (month %in% c(6, 7, 8)) {
+    return("Summer")
+  } else if (month %in% c(9, 10, 11)) {
+    return("Autumn")
+  } else {
+    return(NA)
+  }
+}
+
+
+roadkill <- roadkill %>%
+  mutate(season = sapply(month, get_season))
+
+# Preview the updated dataset
+head(roadkill)
+
+# Save the updated dataset to a new CSV file
+write.csv(roadkill, "updated_dataset_with_seasons.csv", row.names = FALSE)
+
+```
