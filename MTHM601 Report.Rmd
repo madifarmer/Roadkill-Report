@@ -14,9 +14,11 @@ csl: ieee.csl
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+“I have familiarised myself with the academic misconduct and plagiarism guidelines in the Academic Honesty and Plagiarism module and the MTHM601 (Fundamentals of Data Science) ELE site’s Assessment Information tab. This report constitutes my own work, and I have explicitly referenced and acknowledged those parts that draw on the literature, online sources, and the support of others. This includes acknowledgment of any use of Artificial Intelligence tools such as ChatGPT”
+
 ## Introduction
 
-**Topics:** Data Wrangling, Advanced Visualisation, RMarkdown, Hierarchical Modelling, Spatial Visualisation, Temporal Trends
+**Topics:** Data Wrangling, Advanced Visualisation, RMarkdown, Hierarchical Modelling, Spatial Visualisation, Temporal Trends, GitHub
 
 With the ever-changing climate, British wildlife face an uncertain future, with a major decline in biodiversity being found all around the United Kingdom. But another thing that could be adding to the decline in British wildlife is road-traffic-accidents; collisions with vehicles is one of the major causes of wild animal death in the UK [@raymond_temporal_2021]. For animals that are already under immense pressure due to anthropogenic and climate threats, roadkill could push some of these species to extinction.
 
@@ -40,23 +42,19 @@ The four main questions I am hoping to answer are:
 
 ### Roadkill Data
 
-The data I will use is from The Road Lab (formerly 'Project Splatter') [<https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Classes are removed.
+The data I will use is from The Road Lab (formerly 'Project Splatter') [<https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Classes will be removed. I also removed any rows that had blank entries in any of my columns of interest.
 
-Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were removed.
+Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were also removed as they were not to a species level. Some records were grouped under one standardised species name, "Eastern Grey Squirrel" and "Squirrel" became "Grey Squirrel" because Red Squirrels (LATIN) are rare in most parts of the UK so these records were separated from those of "Red Squirrel", the same goes for "Brown Rat" and "Rat spp." because Black Rats (LATIN) are also very rare so any records were assumed to be Brown Rats (LATIN). I also grouped all mouse, bat, vole and hare records into their respective group rather than species level.
 
-Once all unneeded data was removed, I was left with 42810 entries.
+Once the data was cleaned and all unneeded data was removed, I was left with 42810 entries.
 
-It is important to note that there is a large spike in reports in July 2019, I have decided to leave this data as is but it is worth noting. It may be due to a BBC article posted [<https://www.bbc.co.uk/news/science-environment-48886673>]
+It is important to note that there is a large spike in reports in July and August 2019, I have decided try to scale it in line with reports from other years, as it is not likely to reflect an actual massive increase in roadkill but it likely a result of increased news coverage on the project [<https://www.bbc.co.uk/news/science-environment-48886673>].
 
 ### Seasonal/Weather Data
 
 This data will then be combined with data on the mean monthly temperature and total rainfall per month from the Met Office. [<https://www.metoffice.gov.uk/research/climate/maps-and-data/uk-and-regional-series>]
 
-According to the met office, the seasons will be split into months. Spring = MArch, April, May, Summer = June, July, August, Autumn = September, October, November and Winter = December, January and February
-
-### Spatial/Traffic Data
-
-Mean monthly traffic levels will also be used when looking into roadkill hotspots as a potential explanation for these hotspots.
+According to the met office, the seasons will be split into months. The months of March, April and May are now "Spring", June, July and August are "Summer", September, October and November are "Autumn" and December, January and February are "Winter" months.
 
 ## Results
 

@@ -12,7 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
-install.packages("patchwork")
 library(patchwork)
 
 
@@ -186,7 +185,7 @@ unique(mammal_roadkill$species)
 
 ```
 
-### Create new CSV file 
+### Create new CSV file
 
 Now that I have finished with the data wrangling, I will create a new CSV file.
 
@@ -370,7 +369,7 @@ Plot this adjusted data
 library(dplyr)
 
 total_adjusted_data <- adjusted_data %>%
-  group_by(year, month, date) %>% 
+  group_by(year, month) %>% 
   summarise(total_reports = sum(mean_adjusted_count, na.rm = TRUE), .groups = "drop")
 
 head(total_adjusted_data)
@@ -388,6 +387,38 @@ ggplot(total_adjusted_data, aes(x = date, y = total_reports)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+### Map points and temporal trends
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(sf)
+
+# Convert to spatial data
+mammal_sf <- st_as_sf(mammal_roadkill, coords = c("long", "lat"), crs = 4326)
+
+# Map roadkill points
+ggplot() +
+  geom_sf(data = mammal_sf, alpha = 0.6, color = "red") +
+  theme_minimal() +
+  labs(title = "Spatial Distribution of Roadkill", x = "Longitude", y = "Latitude")
+
+# Temporal trends
+mammal_roadkill <- mammal_roadkill %>%
+  mutate(Date = as.Date(date), Month = format(Date, "%Y-%m"))
+
+# Plot monthly trends
+monthly_counts <- mammal_roadkill %>%
+  group_by(month) %>%
+  summarize(Total = n())
+
+ggplot(monthly_counts, aes(x = as.Date(month), y = Total)) +
+  geom_line(color = "blue", linewidth = 1) +
+  theme_minimal() +
+  labs(title = "Monthly Roadkill Counts", x = "Month", y = "Total Reports")
+
+```
+
 ## Met-Office data
 
 Rainfall and temperature data from the met office don't download to excel files, just txt URLs so I have to load these datasets in a different way.
@@ -395,11 +426,83 @@ Rainfall and temperature data from the met office don't download to excel files,
 ```{r}
 tempURL <- "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/Tmean/date/UK.txt"
 
-temp <- read.table(tempURL, header = TRUE, skip = 7, stringsAsFactors = FALSE)
+temp <- read.table(tempURL, header = TRUE, skip = 5, stringsAsFactors = FALSE)
 
+
+
+
+
+# Step 2: Inspect the data to determine where the numeric data starts
+head(raw_data, 20)  # View the first 20 lines to find the header
+
+# Step 3: Extract the data (skip metadata rows, e.g., first 6 lines in this case)
+data <- read.table(tempURL, skip = 5, header = TRUE, fill = TRUE)
+
+# Step 4: Filter the data for years 2013 to 2024
+filtered_data <- data %>%
+  filter(year >= 2014 & year <= 2024)
+
+# Step 5: Reshape the data from wide to long format
+data_long <- filtered_data %>%
+  pivot_longer(
+    cols = jan:dec,  # Month columns
+    names_to = "month",
+    values_to = "mean_temperature"
+  ) %>%
+  mutate(
+    month = factor(month, levels = c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),
+    year = as.numeric(year)
+  )
+
+# Step 6: Plot the data
+ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
+  geom_smooth(se = FALSE, method = "loess", size = 1) +
+  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", size = 0.8) +
+  labs(
+    title = "Mean Temperature Over Months (2014-2024, UK)",
+    x = "Month",
+    y = "Mean Temperature (°C)",
+    color = "Year"
+  ) +
+  theme_minimal()
+
+
+
+
+```
+
+Rain
+
+```{r}
 rainURL <- "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/Rainfall/date/UK.txt" 
 
-rain <- read.table(rainURL, header = TRUE, skip = 7, stringsAsFactors = FALSE)
+rain <- read.table(rainURL, header = TRUE, skip = 5, stringsAsFactors = FALSE)
 
+filtered_rain <- rain %>%
+  filter(year >= 2014 & year <= 2024)
+
+# Step 5: Reshape the data from wide to long format
+long_rain <- filtered_rain %>%
+  pivot_longer(
+    cols = jan:dec,  # Month columns
+    names_to = "month",
+    values_to = "rainfall"
+  ) %>%
+  mutate(
+    month = factor(month, levels = c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),
+    year = as.numeric(year)
+  )
+
+# Step 6: Plot the data
+ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year))) +
+  geom_smooth(se = FALSE, method = "loess", size = 1) +
+  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", size = 0.8) +
+  labs(
+    title = "Rainfall Over Months (2014-2024, UK)",
+    x = "Month",
+    y = "Rainfall",
+    color = "Year"
+  ) +
+  theme_minimal()
 
 ```
