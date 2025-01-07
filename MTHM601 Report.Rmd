@@ -34,9 +34,9 @@ The four main questions I am hoping to answer are:
 
 3.  Where are the mammalian roadkill hotspots across the UK?
 
-4.  Which mammalian species are most commonly recorded as roadkill?
-
 ## Objectives/Methodology
+
+Talk about QQ plots
 
 ## Data
 
@@ -46,9 +46,11 @@ The data I will use is from The Road Lab (formerly 'Project Splatter') [<https:/
 
 Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were also removed as they were not to a species level. Some records were grouped under one standardised species name, "Eastern Grey Squirrel" and "Squirrel" became "Grey Squirrel" because Red Squirrels (LATIN) are rare in most parts of the UK so these records were separated from those of "Red Squirrel", the same goes for "Brown Rat" and "Rat spp." because Black Rats (LATIN) are also very rare so any records were assumed to be Brown Rats (LATIN). I also grouped all mouse, bat, vole and hare records into their respective group rather than species level.
 
-Once the data was cleaned and all unneeded data was removed, I was left with 42810 entries.
+It is important to note that there is a large spike in reports in July and August 2019 (figure 1a), I have decided try to scale it in line with reports from other years, as it is not likely to reflect an actual massive increase in roadkill but it likely a result of increased news coverage on the project [<https://www.bbc.co.uk/news/science-environment-48886673>]. I followed the methods from Raymond et al's [@raymond_temporal_2021] paper for this but I feel that it still left a spike too large to be representative (figure 1b) of the actual roadkill numbers, ultimately leading to the removal of the reports from July and August 2019. I then calculated the mean number of roadkill reports for July, August and September separately, not including 2019 values. Once I had the means, I randomly selected that number from the 2019 reports for each month and removed the rest from those months (figure 1c). This was the only solution I could think of that kept the majority of the data without skewing the seasonal trends in roadkill.
 
-It is important to note that there is a large spike in reports in July and August 2019, I have decided try to scale it in line with reports from other years, as it is not likely to reflect an actual massive increase in roadkill but it likely a result of increased news coverage on the project [<https://www.bbc.co.uk/news/science-environment-48886673>].
+![Figure 1: (a) Graph showing total monthly roadkill reports from 2014 to 2024, showing the spike in reports in July and August 2019. (b) Graph showing total monthly reports of roadkill from 2014 to 2024 after scaling and subsampling the inflated reports from July and August 2019. (c) Graph showing total monthly reports of roadkill from 2014 to 2024 after taking a random sample of the reports from July, August and September that were equal to the means from those months in the other years.](images/clipboard-2178438044.png)
+
+Once the data was cleaned and all unneeded data was removed, I was left with 39130 entries.
 
 ### Seasonal/Weather Data
 
@@ -60,21 +62,11 @@ According to the met office, the seasons will be split into months. The months o
 
 ### Exploratory Analysis
 
-What I want to include:
-
--   Overall number of reports per month
-
-![](images/clipboard-2590066528.png)
-
-![](images/clipboard-2576866133.png)
-
 Graph showing the
 
 -   Reports per season
 
--   Multiple maps of the UK showing reports per season
-
--   Overall species' barchart
+-   Multiple maps of the UK showing reports per season/year
 
 ### Seasonal trends in roadkill
 
@@ -99,6 +91,8 @@ Graph showing the
 Correlation does not mean causation!
 
 My data is not completely normal so some analyses may not be completely accurate
+
+Potential to look into species trends but wasnt within the scope for this report
 
 ## Conclusion
 

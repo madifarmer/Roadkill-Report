@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(patchwork)
+library(dplyr)
+library(lubridate)
 
 
 ```
@@ -124,12 +126,9 @@ str(roadkill)
 mammal_roadkill <- roadkill %>%
   filter(grepl("mammalia", Class, ignore.case = TRUE))
 
-# Preview the updated dataset
 head(mammal_roadkill)
 str(mammal_roadkill)
 
-# Save the filtered dataset
-write.csv(data, "filtered_dataset_mammals_only.csv", row.names = FALSE)
 
 ```
 
@@ -212,25 +211,8 @@ print(monthly_yearly_data)
 
 ```
 
-Heatmap
-
 ```{r}
-ggplot(monthly_yearly_data, aes(x = month, y = year, fill = total_roadkill)) +
-  geom_tile(color = "white") +
-  scale_fill_gradient(low = "lightblue", high = "red", na.value = "gray90") +
-  theme_minimal() +
-  labs(
-    title = "Monthly Roadkill Incidents by Year",
-    x = "Month",
-    y = "Year",
-    fill = "Total Roadkill"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-```
-
-```{r}
-p2 <- ggplot(monthly_yearly_data, aes(x = month, y = total_roadkill, group = year, color = factor(year))) +
+p1 <- ggplot(monthly_yearly_data, aes(x = month, y = total_roadkill, group = year, color = factor(year))) +
   geom_line() +
   theme_minimal() +
   labs(
@@ -241,21 +223,7 @@ p2 <- ggplot(monthly_yearly_data, aes(x = month, y = total_roadkill, group = yea
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-p2
-```
-
-```{r}
-ggplot(monthly_yearly_data, aes(x = month, y = total_roadkill)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  theme_minimal() +
-  labs(
-    title = "Monthly Roadkill Counts",
-    x = "Month",
-    y = "Total Roadkill"
-  ) +
-  facet_wrap(~year) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+p1
 ```
 
 ```{r}
@@ -266,47 +234,24 @@ monthly_roadkill <- mammal_roadkill %>%
 monthly_roadkill <- monthly_roadkill %>%
   mutate(date = as.Date(paste(year, month, 1, sep = "-")))
 
-head(monthly_roadkill)
 
-
-ggplot(monthly_roadkill, aes(x = date, y = reports)) +
-  geom_line(color = "black", linewidth = 1) +
+p2 <- ggplot(monthly_roadkill, aes(x = date, y = reports)) +
+  geom_line(color = "black", linewidth = 0.5) +
   theme_minimal() +
   labs(
-    title = "Monthly Roadkill Reports",
-    x = "Date",
-    y = "Reports"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid.major = element_line(color = "gray", size = 0.3),
-    panel.grid.minor = element_line(color = "gray", size = 0.1)
-  )
+    title = "(a)",
+    x= NULL,
+    y = NULL  ) +
+  ylim(0,2500)+
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-
-```
-
-```{r}
-p1 <- ggplot(monthly_roadkill, aes(x = date, y = reports)) +
-  geom_line(color = "black", linewidth = 1) +
-  geom_point(data = filter(monthly_roadkill, year == 2019 & month == 7),
-             aes(x = date, y = reports), color = "red", size = 3) +
-  theme_minimal() +
-  labs(
-    title = "Monthly Roadkill Reports (2014-2024)",
-    x = "Date",
-    y = "Reports"
-  )
-
-```
-
-Facet plots
-
-```{r}
-p1 + p2
+p2
 ```
 
 ## Scale spike in 2019
+
+Following the methods from Raymond et al. 2021, I scaled the data based on monthly proportions and then I subsampled it 10,000 times and took the mean.
 
 ```{r}
 library(dplyr)
@@ -325,8 +270,6 @@ head(scaled_data)
 
 
 ```
-
-As in PAPER, I will normalise the spike in July and August 2019.
 
 ```{r}
 
@@ -369,22 +312,167 @@ Plot this adjusted data
 library(dplyr)
 
 total_adjusted_data <- adjusted_data %>%
-  group_by(year, month) %>% 
-  summarise(total_reports = sum(mean_adjusted_count, na.rm = TRUE), .groups = "drop")
+  group_by(year, month) %>%
+  summarise(total_reports = sum(mean_adjusted_count, na.rm = TRUE), .groups = "drop") %>%
+  mutate(date = ymd(paste(year, month, "01", sep = "-")))
 
-head(total_adjusted_data)
 
-
-ggplot(total_adjusted_data, aes(x = date, y = total_reports)) +
-  geom_line(color = "black", linewidth = 1) +
+p3 <- ggplot(total_adjusted_data, aes(x = date, y = total_reports)) +
+  geom_line(color = "black", linewidth = 0.5) +
   theme_minimal() +
   labs(
-    title = "Total Adjusted Monthly Roadkill Reports (2014-2024)",
-    x = "Date",
-    y = "Total Adjusted Reports"
+    title = "(b)",
+    x = NULL,
+    y = "Reports"
   ) +
+  ylim(0,2500)+
   scale_x_date(date_labels = "%Y", date_breaks = "1 year") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p3
+```
+
+I decided this still resulted in too big of a spike so I will remove July and August 2019.
+
+### Remove July and August and September 2019
+
+```{r}
+
+mammal_roadkill_no_spike <- mammal_roadkill %>%
+  filter(!(format(date, "%Y-%m") %in% c("2019-07", "2019-08", "2019-09")))
+
+# View the filtered dataset
+head(mammal_roadkill_no_spike)
+
+
+```
+
+```{r}
+p2/p3
+```
+
+### Impute values for July and August 2019
+
+```{r}
+monthly_no_spike <- mammal_roadkill_no_spike %>%
+  group_by(year, month) %>%
+  summarise(total_roadkill = n())
+
+# Convert month numbers to names (if applicable)
+monthly_no_spike <- monthly_no_spike %>%
+  mutate(month = factor(month, levels = 1:12, labels = month.name))
+
+# Preview the aggregated data
+print(monthly_no_spike)
+
+
+imputed_rk <- monthly_no_spike %>%
+  mutate(month = factor(month, levels = month.name)) %>%  # Ensure months are treated as categorical
+  group_by(month) %>%  # Group by month
+  mutate(monthly_mean = mean(total_roadkill, na.rm = TRUE),  # Calculate monthly means
+         value = ifelse(is.na(total_roadkill) & year == 2019, monthly_mean, total_roadkill)) %>%  # Replace missing values
+  select(-monthly_mean)  # Remove helper column
+
+# View the result
+print(imputed_rk)
+```
+
+Change of plan, I am going to calculate the mean for all July's and August's and September's (excluding 2019) and from that mean, I will randomly select that amount of reports from July and August and September in 2019 and keep those, discarding the others. Because I'm not assessing anything at a species level, it doesn't matter if I lose individual species.
+
+```{r}
+july_mean <- mammal_roadkill_no_spike %>%
+  filter(format(date, "%m") == "07") %>%  # Filter for July
+  group_by(year = format(date, "%Y")) %>%  # Group by year
+  summarize(july_count = n()) %>%  # Count the number of reports for each July
+  summarize(mean_july_reports = mean(july_count, na.rm = TRUE))  # Calculate the mean across years
+
+# View the result
+print(round(july_mean))
+
+aug_mean <- mammal_roadkill_no_spike %>%
+  filter(format(date, "%m") == "08") %>%  # Filter for July
+  group_by(year = format(date, "%Y")) %>%  # Group by year
+  summarize(aug_count = n()) %>%  # Count the number of reports for each July
+  summarize(mean_aug_reports = mean(aug_count, na.rm = TRUE))  # Calculate the mean across years
+
+# View the result
+print(round(aug_mean))
+
+sept_mean <- mammal_roadkill_no_spike %>%
+  filter(format(date, "%m") == "09") %>%  # Filter for July
+  group_by(year = format(date, "%Y")) %>%  # Group by year
+  summarize(sept_count = n()) %>%  # Count the number of reports for each July
+  summarize(mean_sept_reports = mean(sept_count, na.rm = TRUE))  # Calculate the mean across years
+
+# View the result
+print(round(sept_mean))
+```
+
+### Choose rows from 2019
+
+```{r}
+set.seed(2108)
+random_sample_july_2019 <- mammal_roadkill %>%
+  filter(format(date, "%Y-%m") == "2019-07") %>%
+  sample_n(363)
+
+print(random_sample_july_2019)
+
+set.seed(2108)
+random_sample_aug_2019 <- mammal_roadkill %>%
+  filter(format(date, "%Y-%m") == "2019-08") %>%
+  sample_n(383)
+
+print(random_sample_aug_2019)
+
+set.seed(2108)
+random_sample_sept_2019 <- mammal_roadkill %>%
+  filter(format(date, "%Y-%m") == "2019-09") %>%
+  sample_n(420)
+
+print(random_sample_sept_2019)
+```
+
+### Add these into the dataset
+
+```{r}
+mammal_no_spike <- mammal_roadkill_no_spike %>%
+  bind_rows(random_sample_july_2019, random_sample_aug_2019, random_sample_sept_2019) %>%
+  arrange(date)
+
+
+```
+
+### Plot
+
+```{r}
+monthly <- mammal_no_spike %>%
+  group_by(year, month) %>%
+  summarise(reports = n(), .groups = "drop")
+
+monthly <- monthly %>%
+  mutate(date = as.Date(paste(year, month, 1, sep = "-")))
+
+
+p4 <- ggplot(monthly, aes(x = date, y = reports)) +
+  geom_line(color = "black", linewidth = 0.5) +
+  theme_minimal() +
+  labs(
+    title = "(c)",
+    x= NULL,
+    y = NULL  ) +
+  ylim(0, 2500) +
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p4
+```
+
+Plot all 3 options together
+
+```{r}
+(p2 + theme(axis.title.x = element_blank(), axis.text.x = element_blank())) /
+(p3 + theme(axis.title.x = element_blank(), axis.text.x = element_blank())) /
+p4
 ```
 
 ### Map points and temporal trends
