@@ -467,7 +467,7 @@ p4 <- ggplot(monthly, aes(x = date, y = reports)) +
 p4
 ```
 
-Plot all 3 options together
+Plot all 3 options together without their x labels.
 
 ```{r}
 (p2 + theme(axis.title.x = element_blank(), axis.text.x = element_blank())) /
