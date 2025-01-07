@@ -26,7 +26,7 @@ This report aims to provide a comprehensive exploration of roadkill trends acros
 
 Focusing on mammals is particularly relevant due to their ecological importance and the disproportionate impact of roadkill on their populations. Many mammal species are wide ranging with large territories that are increasingly being split up by roads, making them more vulnerable to collisions. By narrowing the scope to mammals, this study aims to provide actionable insights for mitigating roadkill impacts on vulnerable mammalian species.
 
-The four main questions I am hoping to answer are:
+The three main questions I am hoping to answer are:
 
 1.  What are the spatial and seasonal trends in mammalian roadkill numbers?
 
@@ -37,6 +37,14 @@ The four main questions I am hoping to answer are:
 ## Objectives/Methodology
 
 Talk about QQ plots
+
+Q1
+
+q2
+
+QQ plots, leverage, etc of the linear model are not good. Trying GAM instead.
+
+Q3
 
 ## Data
 

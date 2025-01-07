@@ -1,6 +1,8 @@
 ---
 title: "Code for MTHM601 report"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2025-01-06"
 ---
 
@@ -15,11 +17,12 @@ library(tidyverse)
 library(patchwork)
 library(dplyr)
 library(lubridate)
-
+library(ggpubr)
+library(mgcv)
 
 ```
 
-## Load datasets
+## Load Roadkill dataset
 
 ```{r}
 roadkill_full <- read.csv("records-2024-12-03.csv")
@@ -105,8 +108,8 @@ roadkill$month <- as.integer(roadkill$month)
 roadkill$year <- as.integer(roadkill$year)
 roadkill$species <- as.factor(roadkill$species)
 roadkill$Taxon.Rank <-as.factor(roadkill$Taxon.Rank)
-roadkill$lat <- as.integer(roadkill$lat)
-roadkill$long <- as.integer(roadkill$long)
+roadkill$lat <- as.numeric(roadkill$lat)
+roadkill$long <- as.numeric(roadkill$long)
 roadkill$country <-as.factor(roadkill$country)
 roadkill$Kingdom <-as.factor(roadkill$Kingdom)
 roadkill$Phylum <-as.factor(roadkill$Phylum)
@@ -475,91 +478,38 @@ Plot all 3 options together without their x labels.
 p4
 ```
 
-### Map points and temporal trends
-
-```{r}
-library(ggplot2)
-library(dplyr)
-library(sf)
-
-# Convert to spatial data
-mammal_sf <- st_as_sf(mammal_roadkill, coords = c("long", "lat"), crs = 4326)
-
-# Map roadkill points
-ggplot() +
-  geom_sf(data = mammal_sf, alpha = 0.6, color = "red") +
-  theme_minimal() +
-  labs(title = "Spatial Distribution of Roadkill", x = "Longitude", y = "Latitude")
-
-# Temporal trends
-mammal_roadkill <- mammal_roadkill %>%
-  mutate(Date = as.Date(date), Month = format(Date, "%Y-%m"))
-
-# Plot monthly trends
-monthly_counts <- mammal_roadkill %>%
-  group_by(month) %>%
-  summarize(Total = n())
-
-ggplot(monthly_counts, aes(x = as.Date(month), y = Total)) +
-  geom_line(color = "blue", linewidth = 1) +
-  theme_minimal() +
-  labs(title = "Monthly Roadkill Counts", x = "Month", y = "Total Reports")
-
-```
-
 ## Met-Office data
 
 Rainfall and temperature data from the met office don't download to excel files, just txt URLs so I have to load these datasets in a different way.
+
+### Load dataset - temperature
+
+Load dataset, turn it into a table, filter to the years I am interested in and then rearrange the table so that it is 'tidy' and each row reflects one month.
 
 ```{r}
 tempURL <- "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/Tmean/date/UK.txt"
 
 temp <- read.table(tempURL, header = TRUE, skip = 5, stringsAsFactors = FALSE)
 
-
-
-
-
-# Step 2: Inspect the data to determine where the numeric data starts
-head(raw_data, 20)  # View the first 20 lines to find the header
-
-# Step 3: Extract the data (skip metadata rows, e.g., first 6 lines in this case)
-data <- read.table(tempURL, skip = 5, header = TRUE, fill = TRUE)
-
-# Step 4: Filter the data for years 2013 to 2024
-filtered_data <- data %>%
+filtered_temp <- temp %>%
   filter(year >= 2014 & year <= 2024)
 
-# Step 5: Reshape the data from wide to long format
-data_long <- filtered_data %>%
+data_long <- filtered_temp %>%
   pivot_longer(
     cols = jan:dec,  # Month columns
     names_to = "month",
     values_to = "mean_temperature"
   ) %>%
   mutate(
-    month = factor(month, levels = c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),
-    year = as.numeric(year)
+    month = match(month, c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),  # Convert month to integer
+    year = as.numeric(year)  # Ensure year is numeric
   )
-
-# Step 6: Plot the data
-ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
-  geom_smooth(se = FALSE, method = "loess", size = 1) +
-  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", size = 0.8) +
-  labs(
-    title = "Mean Temperature Over Months (2014-2024, UK)",
-    x = "Month",
-    y = "Mean Temperature (°C)",
-    color = "Year"
-  ) +
-  theme_minimal()
-
-
-
 
 ```
 
-Rain
+### Load dataset - rain
+
+And now the same for the rain dataset.
 
 ```{r}
 rainURL <- "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/Rainfall/date/UK.txt" 
@@ -577,20 +527,285 @@ long_rain <- filtered_rain %>%
     values_to = "rainfall"
   ) %>%
   mutate(
-    month = factor(month, levels = c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),
+    month = match(month, c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),
     year = as.numeric(year)
   )
+```
 
-# Step 6: Plot the data
+### Plot temperature
+
+```{r}
+ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
+  geom_smooth(se = FALSE, method = "loess", size = 1) +
+  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", size = 0.8) +
+  scale_x_continuous(
+    breaks = 1:12,  # Numeric positions (1 to 12 for months)
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # Month names
+  ) +
+  labs(
+    title = "Mean Temperature Over Months (2014-2024, UK)",
+    x = "Month",
+    y = "Mean Temperature (°C)",
+    color = "Year"
+  ) +
+  theme_minimal()
+
+```
+
+#### Plot rain
+
+```{r}
 ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year))) +
   geom_smooth(se = FALSE, method = "loess", size = 1) +
   geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", size = 0.8) +
+  scale_x_continuous(
+    breaks = 1:12,  # Numeric positions (1 to 12 for months)
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # Month names
+  ) +
   labs(
     title = "Rainfall Over Months (2014-2024, UK)",
     x = "Month",
     y = "Rainfall",
     color = "Year"
   ) +
+  theme_minimal()
+
+```
+
+## Combine roadkill and climate data
+
+```{r}
+#Combine rain and temp datasets
+climate_data <- long_rain %>%
+  full_join(data_long, by = c("year", "month"))
+
+
+roadkill_climate <- mammal_no_spike %>%
+  left_join(climate_data, by = c("year", "month"))
+
+roadkill_climate <- roadkill_climate %>%
+  mutate(across(ends_with(".x"), as.numeric)) %>%  # Convert all ".x" columns to numeric
+  mutate(across(ends_with(".y"), as.numeric))      # Convert all ".y" columns to numeric
+
+
+
+
+roadkill_with_climate <- roadkill_climate %>%
+  mutate(
+    seasonal_rainfall = case_when(
+      season == "Winter" ~ win.x + win.y,
+      season == "Spring" ~ spr.x + spr.y,
+      season == "Summer" ~ sum.x + sum.y,
+      season == "Autumn" ~ aut.x + aut.y,
+      TRUE ~ NA_real_  # Default for unexpected cases
+    )
+  ) %>%
+  select(-win.x, -win.y, -spr.x, -spr.y, -sum.x, -sum.y, -aut.x, -aut.y)
+
+
+roadkill_counts <- roadkill_with_climate %>%
+  group_by(year, month) %>%
+  summarize(roadkill_count = n(), .groups = "drop")
+
+roadkill_with_climate <- roadkill_counts %>%
+  left_join(climate_data, by = c("year", "month"))
+
+
+get_season <- function(month) {
+  if (month %in% c(12, 1, 2)) {
+    return("Winter")
+  } else if (month %in% c(3, 4, 5)) {
+    return("Spring")
+  } else if (month %in% c(6, 7, 8)) {
+    return("Summer")
+  } else if (month %in% c(9, 10, 11)) {
+    return("Autumn")
+  } else {
+    return(NA)
+  }
+}
+
+
+roadkill_with_climate <- roadkill_with_climate %>%
+  mutate(season = sapply(month, get_season))
+
+roadkill_with_climate$season <- factor(roadkill_with_climate$season, 
+                                       levels = c("Winter", "Spring", "Summer", "Autumn"))
+```
+
+## Seasonal Trends
+
+Graph of seasonal trends
+
+```{r}
+# Aggregate roadkill counts by season and year
+seasonal_trends <- mammal_no_spike %>%
+  group_by(season, year) %>%
+  summarize(roadkill_count = n(), .groups = "drop")
+
+# Plot seasonal trends
+library(ggplot2)
+ggplot(seasonal_trends, aes(x = year, y = roadkill_count, color = season)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Seasonal Trends in Mammalian Roadkill",
+    x = "Year",
+    y = "Number of Roadkill Reports",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+```
+
+Analysis
+
+```{r}
+
+```
+
+## Spatial Trend
+
+```{r}
+library(sf)
+library(tmap)
+library(dplyr)
+
+# Step 1: Load UK regions shapefile
+uk_regions <- st_read("ITL2_JAN_2025_UK_BFE.shp")
+
+
+# Convert your roadkill data (with latitude and longitude) into a spatial object
+roadkill_sf <- mammal_no_spike %>%
+  st_as_sf(coords = c("long", "lat"), crs = 4326)  # CRS 4326 is for lat-long
+
+# Ensure the shapefile and roadkill data have the same CRS
+uk_regions <- st_transform(uk_regions, crs = 4326)
+
+# Step 4: Perform Spatial Join
+# Match roadkill points to regions
+roadkill_with_regions <- st_join(roadkill_sf, uk_regions, join = st_intersects)
+
+print(names(uk_regions))
+
+# Aggregate roadkill counts by region
+spatial_trends <- roadkill_with_regions %>%
+  group_by(ITL225NM) %>%  # Replace 'region' with the column in the shapefile that identifies regions
+  summarize(roadkill_count = n(), .groups = "drop")
+
+spatial_trends_map <- uk_regions %>%
+  mutate(NAME = as.character(ITL225NM)) %>%  # Ensure `NAME` is comparable
+  left_join(as.data.frame(spatial_trends), by = "ITL225NM")
+
+# Aggregate roadkill counts by region name (ITL225NM)
+spatial_trends <- roadkill_with_regions %>%
+  group_by(ITL225NM) %>%  # Use ITL225NM for names
+  summarize(roadkill_count = n(), .groups = "drop")
+
+
+# Plot spatial trends as a heatmap
+tmap_mode("view")
+tm_shape(spatial_trends_map) +
+  tm_polygons("roadkill_count", 
+              title = "Roadkill Count", 
+              palette = "YlOrRd", 
+              border.alpha = 0.5,
+              id = "ITL225NM") +  # Use ITL225NM for tooltips/labels
+  tm_layout(main.title = "Spatial Trends in Mammalian Roadkill")
+
+
+
+```
+
+## Role of temp and rainfall
+
+```{r}
+
+
+# Scatter plot with regression line
+ggscatter(roadkill_with_climate, x = "mean_temperature", y = "roadkill_count",
+          add = "reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Temperature (°C)", ylab = "Roadkill Count")
+
+
+ggscatter(roadkill_with_climate, x = "rainfall", y = "roadkill_count",
+          add = "reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Rainfall (cm)", ylab = "Roadkill Count")
+
+# Linear regression model
+model <- lm(roadkill_count ~ mean_temperature + rainfall, data = roadkill_with_climate)
+
+# Summary of the model
+summary(model)
+
+par(mfrow = c(2, 2))
+plot(model)
+```
+
+GAM
+
+```{r}
+gam_model <- gam(roadkill_count ~ rainfall + mean_temperature + season,
+                 data = roadkill_with_climate,
+                 family = poisson(link = "log"))  
+
+
+# Summary of the model
+summary(gam_model)
+
+# Check diagnostics
+par(mfrow = c(2, 2))
+gam.check(gam_model)
+
+```
+
+```{r}
+gam_model <- gam(roadkill_count ~ te(rainfall, mean_temperature) + season,
+                 data = roadkill_with_climate,
+                 family = poisson(link = "log"))
+
+summary(gam_model)
+```
+
+### Identifying hotspots
+
+```{r}
+library(spatstat)
+library(sf)
+
+# Convert roadkill data to spatial points
+roadkill_points <- st_as_sf(roadkill_data, coords = c("longitude", "latitude"), crs = 4326)
+
+# Convert to spatstat ppp object
+roadkill_ppp <- as.ppp(st_coordinates(roadkill_points), W = as.owin(uk_regions))
+
+# Perform kernel density estimation
+roadkill_density <- density(roadkill_ppp, sigma = 1000)
+
+# Plot the density map
+plot(roadkill_density, main = "Kernel Density of Roadkill Incidents")
+
+library(spdep)
+
+# Convert roadkill points to neighbors
+coords <- st_coordinates(roadkill_points)
+neighbors <- knearneigh(coords, k = 8)
+nb <- knn2nb(neighbors)
+
+# Compute Getis-Ord Gi* statistic
+roadkill_points$roadkill_count <- 1  # Each row is one roadkill
+gi_star <- localG(roadkill_points$roadkill_count, nb)
+
+# Add hotspot scores to roadkill points
+roadkill_points$hotspot_score <- as.numeric(gi_star)
+
+# Visualize hotspots
+ggplot() +
+  geom_sf(data = uk_regions, fill = "white") +
+  geom_point(data = roadkill_points, aes(x = longitude, y = latitude, color = hotspot_score)) +
+  scale_color_viridis_c(option = "D") +
+  labs(title = "Roadkill Hotspots Across the UK", color = "Hotspot Score") +
   theme_minimal()
 
 ```
