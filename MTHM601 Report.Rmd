@@ -40,6 +40,8 @@ Talk about QQ plots
 
 Q1
 
+Spatial - using tmap package in r - create a map of regional roadkill reports
+
 q2
 
 QQ plots, leverage, etc of the linear model are not good. Trying GAM instead.
@@ -79,6 +81,8 @@ Graph showing the
 ### Seasonal trends in roadkill
 
 ### Spatial Trends in roadkill
+
+![](images/clipboard-2388807814.png)
 
 ## Limitations
 

@@ -1,0 +1,62 @@
+---
+title: "Interactive map"
+output: html_document
+date: "2025-01-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(patchwork)
+library(dplyr)
+library(lubridate)
+library(ggpubr)
+library(mgcv)
+library(sf)
+library(tmap)
+library(leaflet)
+```
+
+```{r}
+mammal_no_spike <- read.csv("mammal_no_spike.csv")
+```
+
+```{r}
+uk_regions <- st_read("ITL2_JAN_2025_UK_BFE.shp")
+
+
+roadkill_sf <- mammal_no_spike %>%
+  st_as_sf(coords = c("long", "lat"), crs = 4326)  
+
+
+uk_regions <- st_transform(uk_regions, crs = 4326)
+
+
+roadkill_with_regions <- st_join(roadkill_sf, uk_regions, join = st_intersects)
+
+print(names(uk_regions))
+
+spatial_trends <- roadkill_with_regions %>%
+  group_by(ITL225NM) %>%  
+  summarise(roadkill_count = n(), .groups = "drop")
+
+spatial_trends_map <- uk_regions %>%
+  mutate(NAME = as.character(ITL225NM)) %>% 
+  left_join(as.data.frame(spatial_trends), by = "ITL225NM")
+
+spatial_trends <- roadkill_with_regions %>%
+  group_by(ITL225NM) %>%  
+  summarize(roadkill_count = n(), .groups = "drop")
+
+
+tmap_mode("view")
+m1 <- tm_shape(spatial_trends_map) +
+  tm_polygons("roadkill_count", 
+              title = "Roadkill Reports", 
+              palette = "YlOrRd", 
+              border.alpha = 0.5,
+              id = "ITL225NM")
+
+m1
+```

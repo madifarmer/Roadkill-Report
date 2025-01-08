@@ -19,6 +19,9 @@ library(dplyr)
 library(lubridate)
 library(ggpubr)
 library(mgcv)
+library(sf)
+library(tmap)
+library(leaflet)
 
 ```
 
@@ -204,11 +207,9 @@ monthly_yearly_data <- mammal_roadkill %>%
   group_by(year, month) %>%
   summarise(total_roadkill = n())
 
-# Convert month numbers to names (if applicable)
 monthly_yearly_data <- monthly_yearly_data %>%
   mutate(month = factor(month, levels = 1:12, labels = month.name))
 
-# Preview the aggregated data
 print(monthly_yearly_data)
 
 
@@ -311,9 +312,6 @@ head(adjusted_data)
 Plot this adjusted data
 
 ```{r}
-
-library(dplyr)
-
 total_adjusted_data <- adjusted_data %>%
   group_by(year, month) %>%
   summarise(total_reports = sum(mean_adjusted_count, na.rm = TRUE), .groups = "drop") %>%
@@ -334,79 +332,67 @@ p3 <- ggplot(total_adjusted_data, aes(x = date, y = total_reports)) +
 p3
 ```
 
-I decided this still resulted in too big of a spike so I will remove July and August 2019.
+I decided this still resulted in too big of a spike so I will remove July - September 2019 and then ttry imputing values.
 
-### Remove July and August and September 2019
+### Remove July - September 2019
 
 ```{r}
 
 mammal_roadkill_no_spike <- mammal_roadkill %>%
   filter(!(format(date, "%Y-%m") %in% c("2019-07", "2019-08", "2019-09")))
 
-# View the filtered dataset
-head(mammal_roadkill_no_spike)
-
-
 ```
 
-```{r}
-p2/p3
-```
+### Impute values for July - September 2019
 
-### Impute values for July and August 2019
+I will turn it into monthly values and then add blank rows for July - September 2019 and then impute values.
 
 ```{r}
+
 monthly_no_spike <- mammal_roadkill_no_spike %>%
   group_by(year, month) %>%
   summarise(total_roadkill = n())
 
-# Convert month numbers to names (if applicable)
 monthly_no_spike <- monthly_no_spike %>%
   mutate(month = factor(month, levels = 1:12, labels = month.name))
 
-# Preview the aggregated data
 print(monthly_no_spike)
 
-
 imputed_rk <- monthly_no_spike %>%
-  mutate(month = factor(month, levels = month.name)) %>%  # Ensure months are treated as categorical
-  group_by(month) %>%  # Group by month
-  mutate(monthly_mean = mean(total_roadkill, na.rm = TRUE),  # Calculate monthly means
-         value = ifelse(is.na(total_roadkill) & year == 2019, monthly_mean, total_roadkill)) %>%  # Replace missing values
-  select(-monthly_mean)  # Remove helper column
+  mutate(month = factor(month, levels = month.name)) %>%
+  group_by(month) %>%  
+  mutate(monthly_mean = mean(total_roadkill, na.rm = TRUE),  
+         value = ifelse(is.na(total_roadkill) & year == 2019, monthly_mean, total_roadkill)) %>%  
+  select(-monthly_mean)  
 
-# View the result
 print(imputed_rk)
 ```
 
-Change of plan, I am going to calculate the mean for all July's and August's and September's (excluding 2019) and from that mean, I will randomly select that amount of reports from July and August and September in 2019 and keep those, discarding the others. Because I'm not assessing anything at a species level, it doesn't matter if I lose individual species.
+Change of plan, I realised this won't work for what I need as I don't just want monthly values. I am going to calculate the mean for all July's and August's and September's (excluding 2019) and from that mean, I will randomly select that amount of reports from July and August and September in 2019 and keep those, discarding the others. Because I'm not assessing anything at a species level, it doesn't matter if I lose individual species.
 
 ```{r}
 july_mean <- mammal_roadkill_no_spike %>%
-  filter(format(date, "%m") == "07") %>%  # Filter for July
-  group_by(year = format(date, "%Y")) %>%  # Group by year
-  summarize(july_count = n()) %>%  # Count the number of reports for each July
-  summarize(mean_july_reports = mean(july_count, na.rm = TRUE))  # Calculate the mean across years
+  filter(format(date, "%m") == "07") %>%  
+  group_by(year = format(date, "%Y")) %>%  
+  summarize(july_count = n()) %>%  
+  summarize(mean_july_reports = mean(july_count, na.rm = TRUE)) 
 
-# View the result
 print(round(july_mean))
 
 aug_mean <- mammal_roadkill_no_spike %>%
-  filter(format(date, "%m") == "08") %>%  # Filter for July
-  group_by(year = format(date, "%Y")) %>%  # Group by year
-  summarize(aug_count = n()) %>%  # Count the number of reports for each July
-  summarize(mean_aug_reports = mean(aug_count, na.rm = TRUE))  # Calculate the mean across years
+  filter(format(date, "%m") == "08") %>%  
+  group_by(year = format(date, "%Y")) %>%  
+  summarize(aug_count = n()) %>%  
+  summarize(mean_aug_reports = mean(aug_count, na.rm = TRUE))  
 
-# View the result
 print(round(aug_mean))
 
 sept_mean <- mammal_roadkill_no_spike %>%
-  filter(format(date, "%m") == "09") %>%  # Filter for July
-  group_by(year = format(date, "%Y")) %>%  # Group by year
-  summarize(sept_count = n()) %>%  # Count the number of reports for each July
-  summarize(mean_sept_reports = mean(sept_count, na.rm = TRUE))  # Calculate the mean across years
+  filter(format(date, "%m") == "09") %>%  
+  group_by(year = format(date, "%Y")) %>%  
+  summarize(sept_count = n()) %>%  
+  summarize(mean_sept_reports = mean(sept_count, na.rm = TRUE))  
 
-# View the result
 print(round(sept_mean))
 ```
 
@@ -537,7 +523,7 @@ long_rain <- filtered_rain %>%
 ```{r}
 ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
   geom_smooth(se = FALSE, method = "loess", size = 1) +
-  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", size = 0.8) +
+  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
   scale_x_continuous(
     breaks = 1:12,  # Numeric positions (1 to 12 for months)
     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # Month names
@@ -557,7 +543,7 @@ ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = fac
 ```{r}
 ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year))) +
   geom_smooth(se = FALSE, method = "loess", size = 1) +
-  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", size = 0.8) +
+  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
   scale_x_continuous(
     breaks = 1:12,  # Numeric positions (1 to 12 for months)
     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # Month names
@@ -575,7 +561,6 @@ ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year
 ## Combine roadkill and climate data
 
 ```{r}
-#Combine rain and temp datasets
 climate_data <- long_rain %>%
   full_join(data_long, by = c("year", "month"))
 
@@ -584,10 +569,8 @@ roadkill_climate <- mammal_no_spike %>%
   left_join(climate_data, by = c("year", "month"))
 
 roadkill_climate <- roadkill_climate %>%
-  mutate(across(ends_with(".x"), as.numeric)) %>%  # Convert all ".x" columns to numeric
-  mutate(across(ends_with(".y"), as.numeric))      # Convert all ".y" columns to numeric
-
-
+  mutate(across(ends_with(".x"), as.numeric)) %>%   
+  mutate(across(ends_with(".y"), as.numeric)) 
 
 
 roadkill_with_climate <- roadkill_climate %>%
@@ -638,15 +621,12 @@ roadkill_with_climate$season <- factor(roadkill_with_climate$season,
 Graph of seasonal trends
 
 ```{r}
-# Aggregate roadkill counts by season and year
 seasonal_trends <- mammal_no_spike %>%
   group_by(season, year) %>%
   summarize(roadkill_count = n(), .groups = "drop")
 
-# Plot seasonal trends
-library(ggplot2)
 ggplot(seasonal_trends, aes(x = year, y = roadkill_count, color = season)) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   labs(
     title = "Seasonal Trends in Mammalian Roadkill",
     x = "Year",
@@ -665,55 +645,65 @@ Analysis
 
 ## Spatial Trend
 
-```{r}
-library(sf)
-library(tmap)
-library(dplyr)
+I decided to make an interactive map of the roadkill reports per region in the uk.
 
-# Step 1: Load UK regions shapefile
+```{r}
 uk_regions <- st_read("ITL2_JAN_2025_UK_BFE.shp")
 
 
-# Convert your roadkill data (with latitude and longitude) into a spatial object
 roadkill_sf <- mammal_no_spike %>%
-  st_as_sf(coords = c("long", "lat"), crs = 4326)  # CRS 4326 is for lat-long
+  st_as_sf(coords = c("long", "lat"), crs = 4326)  
 
-# Ensure the shapefile and roadkill data have the same CRS
+
 uk_regions <- st_transform(uk_regions, crs = 4326)
 
-# Step 4: Perform Spatial Join
-# Match roadkill points to regions
+
 roadkill_with_regions <- st_join(roadkill_sf, uk_regions, join = st_intersects)
 
 print(names(uk_regions))
 
-# Aggregate roadkill counts by region
 spatial_trends <- roadkill_with_regions %>%
-  group_by(ITL225NM) %>%  # Replace 'region' with the column in the shapefile that identifies regions
+  group_by(ITL225NM) %>%  
   summarize(roadkill_count = n(), .groups = "drop")
 
 spatial_trends_map <- uk_regions %>%
-  mutate(NAME = as.character(ITL225NM)) %>%  # Ensure `NAME` is comparable
+  mutate(NAME = as.character(ITL225NM)) %>% 
   left_join(as.data.frame(spatial_trends), by = "ITL225NM")
 
-# Aggregate roadkill counts by region name (ITL225NM)
 spatial_trends <- roadkill_with_regions %>%
-  group_by(ITL225NM) %>%  # Use ITL225NM for names
+  group_by(ITL225NM) %>%  
   summarize(roadkill_count = n(), .groups = "drop")
 
 
-# Plot spatial trends as a heatmap
 tmap_mode("view")
-tm_shape(spatial_trends_map) +
+m1 <- tm_shape(spatial_trends_map) +
   tm_polygons("roadkill_count", 
-              title = "Roadkill Count", 
+              title = "Roadkill Reports", 
               palette = "YlOrRd", 
               border.alpha = 0.5,
-              id = "ITL225NM") +  # Use ITL225NM for tooltips/labels
-  tm_layout(main.title = "Spatial Trends in Mammalian Roadkill")
+              id = "ITL225NM")
 
+m1
+```
 
+Static map to include in report
 
+```{r}
+tmap_mode("plot")
+
+m2 <- tm_shape(spatial_trends_map) +
+  tm_polygons("roadkill_count", 
+              title = "Roadkill Reports", 
+              palette = "YlOrRd", 
+              border.alpha = 0.5,
+              id = "ITL225NM") +
+  tm_layout(
+    legend.position = c("left", "top"),  
+    legend.text.size = 0.5,                 
+    legend.title.size = 0.8                 
+  )
+
+m2
 ```
 
 ## Role of temp and rainfall
