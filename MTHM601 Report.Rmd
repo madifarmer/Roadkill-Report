@@ -48,6 +48,14 @@ QQ plots, leverage, etc of the linear model are not good. Trying GAM instead.
 
 Q3
 
+Key R Packages I used:
+
+-   **Data wrangling:** tidyverse, dplyr
+
+-   **Data visualisation:** tmap, flextable, ggplot2
+
+-   **Data Analysis:** MASS, Lme4
+
 ## Data
 
 ### Roadkill Data
@@ -58,7 +66,7 @@ Data was collected between 01/01/2014 until 30/09/2024 but as there was only one
 
 It is important to note that there is a large spike in reports in July and August 2019 (figure 1a), I have decided try to scale it in line with reports from other years, as it is not likely to reflect an actual massive increase in roadkill but it likely a result of increased news coverage on the project [<https://www.bbc.co.uk/news/science-environment-48886673>]. I followed the methods from Raymond et al's [@raymond_temporal_2021] paper for this but I feel that it still left a spike too large to be representative (figure 1b) of the actual roadkill numbers, ultimately leading to the removal of the reports from July and August 2019. I then calculated the mean number of roadkill reports for July, August and September separately, not including 2019 values. Once I had the means, I randomly selected that number from the 2019 reports for each month and removed the rest from those months (figure 1c). This was the only solution I could think of that kept the majority of the data without skewing the seasonal trends in roadkill.
 
-![Figure 1: (a) Graph showing total monthly roadkill reports from 2014 to 2024, showing the spike in reports in July and August 2019. (b) Graph showing total monthly reports of roadkill from 2014 to 2024 after scaling and subsampling the inflated reports from July and August 2019. (c) Graph showing total monthly reports of roadkill from 2014 to 2024 after taking a random sample of the reports from July, August and September that were equal to the means from those months in the other years.](images/clipboard-2178438044.png)
+![(a) Graph showing total monthly roadkill reports from 2014 to 2024, showing the spike in reports in July and August 2019. (b) Graph showing total monthly reports of roadkill from 2014 to 2024 after scaling and subsampling the inflated reports from July and August 2019. (c) Graph showing total monthly reports of roadkill from 2014 to 2024 after taking a random sample of the reports from July, August and September that were equal to the means from those months in the other years.](images/clipboard-2178438044.png)
 
 Once the data was cleaned and all unneeded data was removed, I was left with 39130 entries.
 
@@ -80,9 +88,25 @@ Graph showing the
 
 ### Seasonal trends in roadkill
 
-### Spatial Trends in roadkill
+Four negative binomial Generalised Linear models were fitted to evaluate the effects of year, season and their interaction on roadkill counts. To determine the best-fitting model for roadkill counts, I conducted likelihood ratio tests (Chi-squared tests) between nested models. These tests assess whether adding predictors or including interaction terms significantly improves the model fit. This approach allows for a stepwise comparison of the models to identify the simplest model that adequately explains the variability in roadkill counts. The Year-only model had the highest AIC (591.84), indicating poor fit compared to models including Season. Adding Season significantly improved the model, as evidenced by a lower AIC (584.73) and a significant Likelihood Ratio Test (
+
+$\chi^2$ = 11.11, p \< 0.01; Table 1). The Year + Season model had a slightly higher AIC (585.91) and did not significantly improve fit over the Season-only model ($\chi^2$ = 0.82, p = 0.36). Similarly, the interaction model was more complex but failed to improve fit (AIC = 590.42, $\chi^2$= 1.48, p = 0.69). These results suggest that Season is a significant predictor of roadkill counts, while Year and the Year × Season interaction do not provide additional explanatory power. The Season-only model provides the best balance of simplicity and fit.
+
+![](images/clipboard-4236810683.png)
+
+The negative binomial model indicated that winter had significantly lower roadkill counts compared to the reference season, Autumn (p = 0.0237). No significant differences were observed for Spring (p = 0.2993) or Summer (p = 0.3419) relative to Autumn. This suggests that roadkill counts are relatively stable across spring, summer, and autumn, but decrease significantly in winter (figure 2).
+
+![Boxplot of seasonal variation in roadkill reports](images/clipboard-2396007305.png)
+
+### Impacts of weather on roadkill
+
+Generalised Linear Model with a poissonn family was used due to the response variable being count data.
+
+### Where are the roadkill hotspots?
 
 ![](images/clipboard-2388807814.png)
+
+View an interactive version of this map [here](https://universityofexeteruk-my.sharepoint.com/:u:/r/personal/mf683_exeter_ac_uk/Documents/MTHM601%20Report/Interactive-map.html?csf=1&web=1&e=BQBdNb)
 
 ## Limitations
 
@@ -106,7 +130,7 @@ My data is not completely normal so some analyses may not be completely accurate
 
 Potential to look into species trends but wasnt within the scope for this report
 
-## Conclusion
+## Conclusions
 
 ## Reproducibility
 

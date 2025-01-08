@@ -22,7 +22,9 @@ library(mgcv)
 library(sf)
 library(tmap)
 library(leaflet)
-
+library(spatstat)
+library(flextable)
+library(MASS)
 ```
 
 ## Load Roadkill dataset
@@ -374,24 +376,24 @@ Change of plan, I realised this won't work for what I need as I don't just want 
 july_mean <- mammal_roadkill_no_spike %>%
   filter(format(date, "%m") == "07") %>%  
   group_by(year = format(date, "%Y")) %>%  
-  summarize(july_count = n()) %>%  
-  summarize(mean_july_reports = mean(july_count, na.rm = TRUE)) 
+  summarise(july_count = n()) %>%  
+  summarise(mean_july_reports = mean(july_count, na.rm = TRUE)) 
 
 print(round(july_mean))
 
 aug_mean <- mammal_roadkill_no_spike %>%
   filter(format(date, "%m") == "08") %>%  
   group_by(year = format(date, "%Y")) %>%  
-  summarize(aug_count = n()) %>%  
-  summarize(mean_aug_reports = mean(aug_count, na.rm = TRUE))  
+  summarise(aug_count = n()) %>%  
+  summarise(mean_aug_reports = mean(aug_count, na.rm = TRUE))  
 
 print(round(aug_mean))
 
 sept_mean <- mammal_roadkill_no_spike %>%
   filter(format(date, "%m") == "09") %>%  
   group_by(year = format(date, "%Y")) %>%  
-  summarize(sept_count = n()) %>%  
-  summarize(mean_sept_reports = mean(sept_count, na.rm = TRUE))  
+  summarise(sept_count = n()) %>%  
+  summarise(mean_sept_reports = mean(sept_count, na.rm = TRUE))  
 
 print(round(sept_mean))
 ```
@@ -588,7 +590,7 @@ roadkill_with_climate <- roadkill_climate %>%
 
 roadkill_counts <- roadkill_with_climate %>%
   group_by(year, month) %>%
-  summarize(roadkill_count = n(), .groups = "drop")
+  summarise(roadkill_count = n(), .groups = "drop")
 
 roadkill_with_climate <- roadkill_counts %>%
   left_join(climate_data, by = c("year", "month"))
@@ -623,7 +625,7 @@ Graph of seasonal trends
 ```{r}
 seasonal_trends <- mammal_no_spike %>%
   group_by(season, year) %>%
-  summarize(roadkill_count = n(), .groups = "drop")
+  summarise(roadkill_count = n(), .groups = "drop")
 
 ggplot(seasonal_trends, aes(x = year, y = roadkill_count, color = season)) +
   geom_line(linewidth = 1) +
@@ -637,10 +639,92 @@ ggplot(seasonal_trends, aes(x = year, y = roadkill_count, color = season)) +
 
 ```
 
-Analysis
+```{r}
+seasonal_data <- mammal_no_spike %>%
+  group_by(year, season) %>%
+  summarise(Count = n(), .groups = 'drop')
+
+ggplot(seasonal_data, aes(x = season, y = Count)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Seasonal Variation in Roadkill Counts",
+       x = "Season",
+       y = "Roadkill Counts") +
+  theme_minimal()
+```
+
+Determine which model to use
+
+```{r}
+# Model 1: Year only
+model_year <- glm.nb(Count ~ year, data = seasonal_data)
+
+# Model 2: Season only
+model_season <- glm.nb(Count ~ season, data = seasonal_data)
+
+# Model 3: Both Year and Season
+model_both <- glm.nb(Count ~ year + season, data = seasonal_data)
+
+# Model 4: Year and Season with Interaction
+model_interaction <- glm.nb(Count ~ year * season, data = seasonal_data)
+
+# Compare models using AIC
+AIC(model_year, model_season, model_both, model_interaction)
+
+lrt_year_vs_season <- anova(model_year, model_season, test = "Chisq")
+lrt_season_vs_both <- anova(model_season, model_both, test = "Chisq")
+lrt_both_vs_interaction <- anova(model_both, model_interaction, test = "Chisq")
+
+
+```
+
+### Creating a table for report
 
 ```{r}
 
+
+
+model_comparison <- data.frame(
+  Model = c("Year", "Season", "Year + Season", "Year * Season"),
+  AIC = c(AIC(model_year),
+          AIC(model_season),
+          AIC(model_both),
+          AIC(model_interaction)),
+  LogLik = c(logLik(model_year),
+             logLik(model_season),
+             logLik(model_both),
+             logLik(model_interaction)),
+  DF = c(attr(logLik(model_year), "df"),
+         attr(logLik(model_season), "df"),
+         attr(logLik(model_both), "df"),
+         attr(logLik(model_interaction), "df")),
+  LR_Stat = c(NA, 
+              lrt_year_vs_season$`LR stat.`[2],
+              lrt_season_vs_both$`LR stat.`[2],
+              lrt_both_vs_interaction$`LR stat.`[2]),
+  P_Value = c(NA, 
+              lrt_year_vs_season$`Pr(Chi)`[2],
+              lrt_season_vs_both$`Pr(Chi)`[2],
+              lrt_both_vs_interaction$`Pr(Chi)`[2])
+)
+
+
+
+
+ft <- model_comparison %>%
+  mutate(P_Value = ifelse(P_Value < 0.01, "<0.01", as.character(round(P_Value, 2)))) %>%
+  flextable() %>%
+  colformat_double(j = c(2:6), digits = 2) %>% # round numbers of specific columns to 2 decimal places
+  align(align = 'center', part = 'header') %>% # align column names centrally
+  align(align = 'center', part = 'body') %>%
+  bold(~P_Value == "<0.01", j = "P_Value")
+
+
+ft
+
+```
+
+```{r}
+summary(model_season)
 ```
 
 ## Spatial Trend
@@ -664,7 +748,7 @@ print(names(uk_regions))
 
 spatial_trends <- roadkill_with_regions %>%
   group_by(ITL225NM) %>%  
-  summarize(roadkill_count = n(), .groups = "drop")
+  summarise(roadkill_count = n(), .groups = "drop")
 
 spatial_trends_map <- uk_regions %>%
   mutate(NAME = as.character(ITL225NM)) %>% 
@@ -672,7 +756,7 @@ spatial_trends_map <- uk_regions %>%
 
 spatial_trends <- roadkill_with_regions %>%
   group_by(ITL225NM) %>%  
-  summarize(roadkill_count = n(), .groups = "drop")
+  summarise(roadkill_count = n(), .groups = "drop")
 
 
 tmap_mode("view")
@@ -704,6 +788,24 @@ m2 <- tm_shape(spatial_trends_map) +
   )
 
 m2
+```
+
+```{r}
+
+
+ggplot(roadkill_sf) +
+  geom_sf(aes(color = season), size = 1) +
+  facet_wrap(~season) +
+  labs(title = "Distribution of Reports by Season",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+```
+
+Seasonal boxplots
+
+```{r}
+
+
 ```
 
 ## Role of temp and rainfall
@@ -761,14 +863,28 @@ summary(gam_model)
 ### Identifying hotspots
 
 ```{r}
-library(spatstat)
-library(sf)
+
 
 # Convert roadkill data to spatial points
-roadkill_points <- st_as_sf(roadkill_data, coords = c("longitude", "latitude"), crs = 4326)
+roadkill_points <- st_as_sf(mammal_no_spike, coords = c("long", "lat"), crs = 4326)
 
 # Convert to spatstat ppp object
 roadkill_ppp <- as.ppp(st_coordinates(roadkill_points), W = as.owin(uk_regions))
+
+library(sf)
+library(spatstat)
+library(spdep)
+library(ggplot2)
+library(viridis)
+
+# Reproject roadkill_points to a projected CRS (e.g., British National Grid: EPSG 27700)
+roadkill_points_proj <- st_transform(roadkill_points, crs = 27700)
+
+# Convert to spatstat ppp object
+coords_proj <- st_coordinates(roadkill_points_proj)  # Extract projected coordinates
+uk_regions_proj <- st_transform(uk_regions, crs = 27700)  # Ensure same CRS for region data
+win <- as.owin(st_bbox(uk_regions_proj))  # Create a window object for UK regions
+roadkill_ppp <- as.ppp(coords_proj, W = win)
 
 # Perform kernel density estimation
 roadkill_density <- density(roadkill_ppp, sigma = 1000)
@@ -776,24 +892,21 @@ roadkill_density <- density(roadkill_ppp, sigma = 1000)
 # Plot the density map
 plot(roadkill_density, main = "Kernel Density of Roadkill Incidents")
 
-library(spdep)
-
 # Convert roadkill points to neighbors
-coords <- st_coordinates(roadkill_points)
-neighbors <- knearneigh(coords, k = 8)
+neighbors <- knearneigh(coords_proj, k = 8)
 nb <- knn2nb(neighbors)
 
 # Compute Getis-Ord Gi* statistic
-roadkill_points$roadkill_count <- 1  # Each row is one roadkill
-gi_star <- localG(roadkill_points$roadkill_count, nb)
+roadkill_points_proj$roadkill_count <- 1  # Each row is one roadkill
+gi_star <- localG(roadkill_points_proj$roadkill_count, nb)
 
 # Add hotspot scores to roadkill points
-roadkill_points$hotspot_score <- as.numeric(gi_star)
+roadkill_points_proj$hotspot_score <- as.numeric(gi_star)
 
 # Visualize hotspots
 ggplot() +
-  geom_sf(data = uk_regions, fill = "white") +
-  geom_point(data = roadkill_points, aes(x = longitude, y = latitude, color = hotspot_score)) +
+  geom_sf(data = uk_regions_proj, fill = "white") +
+  geom_point(data = roadkill_points_proj, aes(x = coords_proj[,1], y = coords_proj[,2], color = hotspot_score)) +
   scale_color_viridis_c(option = "D") +
   labs(title = "Roadkill Hotspots Across the UK", color = "Hotspot Score") +
   theme_minimal()
