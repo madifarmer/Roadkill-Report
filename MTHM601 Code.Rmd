@@ -25,6 +25,7 @@ library(leaflet)
 library(spatstat)
 library(flextable)
 library(MASS)
+library(lme4)
 ```
 
 ## Load Roadkill dataset
@@ -60,7 +61,7 @@ head(rk)
 Create dataset with only necessary columns. Using the dplyr package.
 
 ```{r}
-roadkill <- rk %>% select(species, Taxon.Rank, date, day, month, year, lat, long, country, Kingdom, Phylum, Class, Order, Family, Genus)
+roadkill <- rk %>% dplyr::select(species, Taxon.Rank, date, day, month, year, lat, long, country, Kingdom, Phylum, Class, Order, Family, Genus)
 
 
 ```
@@ -365,7 +366,7 @@ imputed_rk <- monthly_no_spike %>%
   group_by(month) %>%  
   mutate(monthly_mean = mean(total_roadkill, na.rm = TRUE),  
          value = ifelse(is.na(total_roadkill) & year == 2019, monthly_mean, total_roadkill)) %>%  
-  select(-monthly_mean)  
+  dplyr::select(-monthly_mean)  
 
 print(imputed_rk)
 ```
@@ -524,7 +525,7 @@ long_rain <- filtered_rain %>%
 
 ```{r}
 ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
-  geom_smooth(se = FALSE, method = "loess", size = 1) +
+  geom_smooth(se = FALSE, method = "loess", linewidth = 1) +
   geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
   scale_x_continuous(
     breaks = 1:12,  # Numeric positions (1 to 12 for months)
@@ -544,7 +545,7 @@ ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = fac
 
 ```{r}
 ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year))) +
-  geom_smooth(se = FALSE, method = "loess", size = 1) +
+  geom_smooth(se = FALSE, method = "loess", linewidth = 1) +
   geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
   scale_x_continuous(
     breaks = 1:12,  # Numeric positions (1 to 12 for months)
@@ -585,7 +586,7 @@ roadkill_with_climate <- roadkill_climate %>%
       TRUE ~ NA_real_  # Default for unexpected cases
     )
   ) %>%
-  select(-win.x, -win.y, -spr.x, -spr.y, -sum.x, -sum.y, -aut.x, -aut.y)
+  dplyr::select(-win.x, -win.y, -spr.x, -spr.y, -sum.x, -sum.y, -aut.x, -aut.y)
 
 
 roadkill_counts <- roadkill_with_climate %>%
@@ -723,6 +724,8 @@ ft
 
 ```
 
+Now I've picked the best model, i get a summary of it which tells me which seasons are significant
+
 ```{r}
 summary(model_season)
 ```
@@ -753,11 +756,6 @@ spatial_trends <- roadkill_with_regions %>%
 spatial_trends_map <- uk_regions %>%
   mutate(NAME = as.character(ITL225NM)) %>% 
   left_join(as.data.frame(spatial_trends), by = "ITL225NM")
-
-spatial_trends <- roadkill_with_regions %>%
-  group_by(ITL225NM) %>%  
-  summarise(roadkill_count = n(), .groups = "drop")
-
 
 tmap_mode("view")
 m1 <- tm_shape(spatial_trends_map) +
@@ -790,21 +788,62 @@ m2 <- tm_shape(spatial_trends_map) +
 m2
 ```
 
+I wanted to look at seasonal trends but there were too many reports for the maps to show anything
+
 ```{r}
 
-
 ggplot(roadkill_sf) +
-  geom_sf(aes(color = season), size = 1) +
+  geom_sf(aes(colour = season), size = 1) +
   facet_wrap(~season) +
   labs(title = "Distribution of Reports by Season",
        x = "Longitude", y = "Latitude") +
   theme_minimal()
 ```
 
-Seasonal boxplots
+Again, even split into month there is not visually much difference
 
 ```{r}
+ggplot(roadkill_sf) +
+  geom_sf(aes(colour = month), size = 1) +
+  facet_wrap(~month) +
+  labs(title = "Distribution of Reports by Season",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+```
 
+Test normality
+
+```{r}
+hist(spatial_trends_map$roadkill_count, xlab = "Counts", breaks = 10)
+
+qqnorm(spatial_trends_map$roadkill_count) 
+qqline(spatial_trends_map$roadkill_count, col = "red")
+```
+
+Check for overdispersion
+
+```{r}
+# Check mean and variance
+mean_count <- mean(spatial_trends_map$roadkill_count)
+var_count <- var(spatial_trends_map$roadkill_count)
+print(mean_count)
+print(var_count)
+#mean is a lot smaller than variance so negative binomial distribvution is likely better but i will calculate the dispersion statistic for the poisson model
+```
+
+```{r}
+poisson_model <- glm(roadkill_count ~ NAME, family = poisson(link = "log"), data = spatial_trends_map)
+
+dispersion <- sum(residuals(poisson_model, type = "pearson")^2) / df.residual(poisson_model)
+print(dispersion)
+
+```
+
+```{r}
+region_data <- spatial_trends_map[complete.cases(spatial_trends_map), ]
+
+
+region_nb <- glm.nb(roadkill_count ~ NAME, data = region_data)
 
 ```
 
@@ -858,6 +897,13 @@ gam_model <- gam(roadkill_count ~ te(rainfall, mean_temperature) + season,
                  family = poisson(link = "log"))
 
 summary(gam_model)
+```
+
+```{r}
+glmer_model <- glmer(roadkill_count ~ mean_temperature + rainfall + (1 | NAME), 
+                     family = poisson(link = "log"), data = roadkill_with_climate)
+summary(glmer_model)
+
 ```
 
 ### Identifying hotspots
