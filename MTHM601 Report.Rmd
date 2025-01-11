@@ -34,29 +34,27 @@ The three main questions I am hoping to answer are:
 
 3.  Where are the mammalian roadkill hotspots across the UK?
 
-## Objectives/Methodology
+By addressing these questions, this report aims to provide a comprehensive overview of the spatial and temporal patterns of roadkill in the UK. The findings aim to assess the interconnected nature of ecological processes and human activities, emphasising the need for coexistence between humans and wildlife.
 
-After extensive data wrangling...
+## Methodology
 
-Talk about QQ plots
+All analyses were conducted using the statistical progamming language R , with the aim of addressing three key research questions through a combination of data wrangling, statistical modelling and data visualisation.
 
-Q1
+The datasets used for this analysis, roadkill and environmental data (rainfall and temperature), were sourced from reliable national citizen science programmes and databases. These data were cleaned to remove inconsistencies and missing values. Relevant variables were standardised, ensuring compatibility across datasets. The resulting datasets were prepared for analysis by structuring them based on the research question being answered.
 
-Spatial - using tmap package in r - create a map of regional roadkill reports
+**Seasonal trends in roadkill**
 
-Data was split into count per region, after plotting a histogram and a Q-Q plot, it was obvious that the data was not normally distributed.
+To investigate seasonal variations in mammalian roadkill, negative binomial generalised linear models (GLMs) were applied. These models accounted for overdispersion in the count data and included season and month as explanatory variables. This analysis was used to highlight periods of increased roadkill prevalence.
 
-Overdispersion of a poisson glm was calculated using the dispersion statistic:
+**Impacts of weather on roadkill**
 
-A value of `inf` inidicated overdisapersion, justifying the use of a negative binomial GLM over Poisson regression.
+To explore the influence of environmental factors on roadkill counts, a generalised linear mixed model (GLMM) was used. This incorporated temperature and rainfall as fixed effects and region as a random effect to account for geographical variability. During preliminary analysis, linear models were considered however diagnostic plots showed significant deviations from the model's assumptions. Q-Q plots of residuals indicated non-normality and high-leverage points were also identified, showing the need for a different model. The GLMM addressed these limitations, providing an insight into the relationship between roadkill counts and weather conditions while accounting for regional differences.
 
-q2
+**Where are the roadkill hotspots?**
 
-QQ plots, leverage, etc of the linear model are not good. Trying GAM instead.
+The roadkill records were divided into regions of the UK to show which county has the highest roadkill prevalence. To validate the spatial data and check assumptions about its distribution, normality was assessed within regions using histograms and Q-Q plots. This showed that the data were not normally distributed, \_\_ the use of \_\_ model. An interactive map was created to visualise the spatial patterns dynamically, with a static version included in this report to summarise the findings.
 
-Q3
-
-Key R Packages I used:
+**Key R Packages I used:**
 
 -   **Data wrangling:** tidyverse, dplyr
 
@@ -70,9 +68,9 @@ Key R Packages I used:
 
 The data I will use is from The Road Lab (formerly 'Project Splatter') [<https://www.theroadlab.co.uk/>], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Classes will be removed. I also removed any rows that had blank entries in any of my columns of interest.
 
-Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were also removed as they were not to a species level. Some records were grouped under one standardised species name, "Eastern Grey Squirrel" and "Squirrel" became "Grey Squirrel" because Red Squirrels (LATIN) are rare in most parts of the UK so these records were separated from those of "Red Squirrel", the same goes for "Brown Rat" and "Rat spp." because Black Rats (LATIN) are also very rare so any records were assumed to be Brown Rats (LATIN). I also grouped all mouse, bat, vole and hare records into their respective group rather than species level.
+Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were also removed as they were not to a species level. Some records were grouped under one standardised species name, "Eastern Grey Squirrel" and "Squirrel" became "Grey Squirrel" because Red Squirrels (*Sciurus vulgaris*) are rare in most parts of the UK so these records were separated from those of "Red Squirrel", the same goes for "Brown Rat" and "Rat spp." because Black Rats (*Rattus rattus*) are also very rare so any records were assumed to be Brown Rats (*Rattus norvegicus*). I also grouped all mouse, bat, vole and hare records into their respective group rather than species level.
 
-![Graph showing total monthly roadkill reports from January 2014 to January 2024, showing (a) the spike in reports in July - September 2019. (b) after scaling and sub-sampling the inflated reports from July - September 2019. And (c) after taking a random sample of the reports from July - September 2019 that were equal to the means from those months in the other years.](images/clipboard-2178438044.png){alt="Graph showing total monthly roadkill reports from January 2014 to January 2024, showing (a) the spike in reports in July - September 2019. (b) after scaling and sub-sampling the inflated reports from July - September 2019. And (c) after taking a random sample of the reports from July - September 2019 that were equal to the means from those months in the other years."}
+![Graph showing total monthly roadkill reports from January 2014 to January 2024, showing (a) the spike in reports in July - September 2019. (b) after scaling and sub-sampling the inflated reports from July - September 2019. And (c) after taking a random sample of the reports from July - September 2019 that were equal to the means from those months in the other years.](images/clipboard-2178438044.png)
 
 It is important to note that there is a large spike in reports in July and August 2019 (figure 1a), I have decided try to scale it in line with reports from other years, as it is not likely to reflect an actual massive increase in roadkill but it likely a result of increased news coverage on the project [<https://www.bbc.co.uk/news/science-environment-48886673>]. I followed the methods from Raymond et al's [@raymond_temporal_2021] paper for this but I feel that it still left a spike too large to be representative (figure 1b) of the actual roadkill numbers, ultimately leading to the removal of the reports from July and August 2019. I then calculated the mean number of roadkill reports for July, August and September separately, not including 2019 values. Once I had the means, I randomly selected that number from the 2019 reports for each month and removed the rest from those months (figure 1c). This was the only solution I could think of that kept the majority of the data without skewing the seasonal trends in roadkill. Once the data was cleaned and all unneeded data was removed, I was left with 39130 entries. I also created a separate dataset that combined the reports for each month to create a monthly count of roadkill reports for some of the plots and analyses.
 
@@ -86,9 +84,7 @@ According to the met office, the seasons will be split into months. The months o
 
 ### Seasonal trends in roadkill
 
-Four negative binomial Generalised Linear models were fitted to evaluate the effects of year, season and their interaction on roadkill counts. To determine the best-fitting model for roadkill counts, I conducted likelihood ratio tests (Chi-squared tests) between nested models. These tests assess whether adding predictors or including interaction terms significantly improves the model fit. This approach allows for a stepwise comparison of the models to identify the simplest model that adequately explains the variability in roadkill counts. The Year-only model had the highest AIC (591.84), indicating poor fit compared to models including Season. Adding Season significantly improved the model, as evidenced by a lower AIC (584.73) and a significant Likelihood Ratio Test (
-
-$\chi^2$ = 11.11, p \< 0.01; Table 1). The Year + Season model had a slightly higher AIC (585.91) and did not significantly improve fit over the Season-only model ($\chi^2$ = 0.82, p = 0.36). Similarly, the interaction model was more complex but failed to improve fit (AIC = 590.42, $\chi^2$= 1.48, p = 0.69). These results suggest that Season is a significant predictor of roadkill counts, while Year and the Year × Season interaction do not provide additional explanatory power. The Season-only model provides the best balance of simplicity and fit.
+Four negative binomial Generalised Linear models were fitted to evaluate the effects of year, season and their interaction on roadkill counts. To determine the best-fitting model for roadkill counts, I conducted likelihood ratio tests (Chi-squared tests) between nested models. These tests assess whether adding predictors or including interaction terms significantly improves the model fit. This approach allows for a stepwise comparison of the models to identify the simplest model that adequately explains the variability in roadkill counts. The Year-only model had the highest AIC (591.84), indicating poor fit compared to models including Season. Adding Season significantly improved the model, as evidenced by a lower AIC (584.73) and a significant Likelihood Ratio Test ($\chi^2$ = 11.11, p \< 0.01; Table 1). The Year + Season model had a slightly higher AIC (585.91) and did not significantly improve fit over the Season-only model ($\chi^2$ = 0.82, p = 0.36). Similarly, the interaction model was more complex but failed to improve fit (AIC = 590.42, $\chi^2$= 1.48, p = 0.69). These results suggest that Season is a significant predictor of roadkill counts, while Year and the Year × Season interaction do not provide additional explanatory power. The Season-only model provides the best balance of simplicity and fit.
 
 | Model          | AIC    | LogLik  | DF  | LR stat | P Value    |
 |----------------|--------|---------|-----|---------|------------|
