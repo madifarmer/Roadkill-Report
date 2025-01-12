@@ -27,7 +27,6 @@ library(flextable)
 library(MASS)
 library(lme4)
 library(emmeans)
-
 ```
 
 ## Load Roadkill dataset
@@ -43,9 +42,9 @@ roadkill_full <- read.csv("records-2024-12-03.csv")
 Using the dplyr package, rename columns so they are more manageable.
 
 ```{r}
-head(roadkill_full)
+head(roadkill_full) #view column names
 
-rk <- roadkill_full %>% 
+rk <- roadkill_full %>% #rename complex names to more manageable ones to reduce errors
   rename(
     species = Common.name,
     date = Start.date,
@@ -57,13 +56,13 @@ rk <- roadkill_full %>%
     country = State.Province
   )
 
-head(rk)
+head(rk) #view column names for new dataset
 ```
 
 Create dataset with only necessary columns. Using the dplyr package.
 
 ```{r}
-roadkill <- rk %>% dplyr::select(species, Taxon.Rank, date, day, month, year, lat, long, country, Kingdom, Phylum, Class, Order, Family, Genus)
+roadkill <- rk %>% dplyr::select(species, Taxon.Rank, date, day, month, year, lat, long, country, Kingdom, Phylum, Class, Order, Family, Genus) #only keep relevant columns
 
 
 ```
@@ -73,7 +72,7 @@ roadkill <- rk %>% dplyr::select(species, Taxon.Rank, date, day, month, year, la
 I am interested in seasonal variation, not just the exact date so I am going to use an if-else function to create a season column.
 
 ```{r}
-get_season <- function(month) {
+get_season <- function(month) { #if-else function to turn months into their corresponding season
   if (month %in% c(12, 1, 2)) {
     return("Winter")
   } else if (month %in% c(3, 4, 5)) {
@@ -89,7 +88,7 @@ get_season <- function(month) {
 
 
 roadkill <- roadkill %>%
-  mutate(season = sapply(month, get_season))
+  mutate(season = sapply(month, get_season)) #create new season column by applying the if-else function to the month column
 
 
 head(roadkill)
@@ -101,7 +100,7 @@ Noticed that date is coming up as NA - so I will combine the day, month and year
 
 ```{r}
 roadkill <- roadkill %>%
-  mutate(date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d"))
+  mutate(date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d")) #change format of year to make sure it shows up correctly
 
 head(roadkill)
 
@@ -111,6 +110,7 @@ head(roadkill)
 ### Format data types
 
 ```{r}
+#format data type for each column specific to the contents of each column
 roadkill$day <- as.integer(roadkill$day)
 roadkill$month <- as.integer(roadkill$month)
 roadkill$year <- as.integer(roadkill$year)
@@ -135,7 +135,7 @@ str(roadkill)
 ```{r}
 
 mammal_roadkill <- roadkill %>%
-  filter(grepl("mammalia", Class, ignore.case = TRUE))
+  filter(grepl("mammalia", Class, ignore.case = TRUE)) #Only keep mammal reports
 
 head(mammal_roadkill)
 str(mammal_roadkill)
@@ -149,7 +149,7 @@ str(mammal_roadkill)
 
 mammal_roadkill <- mammal_roadkill %>%
   mutate(species = trimws(species)) %>% 
-  filter(species != "", !is.na(species)) 
+  filter(species != "", !is.na(species)) #remove any NAs and blanks from the dataset
 
 head(mammal_roadkill)
 str(mammal_roadkill)
@@ -159,7 +159,7 @@ str(mammal_roadkill)
 ### Unique species
 
 ```{r}
-unique(mammal_roadkill$species)
+unique(mammal_roadkill$species) #list all unique values in the species column
 ```
 
 ### Remove "indet.deer" and "polecat-ferret hybrid" and "rabbit and hares"
@@ -168,7 +168,7 @@ Because they are not to a species level, I opted to remove any rows that were ca
 
 ```{r}
 mammal_roadkill <- mammal_roadkill %>%
-  filter(!species %in% c("Indet. Deer", "Polecat-Ferret", "rabbits and hares"))
+  filter(!species %in% c("Indet. Deer", "Polecat-Ferret", "rabbits and hares")) #remove these reports
 ```
 
 ### Standardise species names
@@ -176,7 +176,7 @@ mammal_roadkill <- mammal_roadkill %>%
 Some species were hard to identify to species level, so I decided to group them. Also grey squirrel and squirrel, I grouped as Red Squirrels are rare in most parts of the country.
 
 ```{r}
-
+#some are recorded with multiple names, combine them into generalised names
 mammal_roadkill <- mammal_roadkill %>%
   mutate(species = case_when(
     species %in% c("Eastern Grey Squirrel", "Squirrel") ~ "Grey Squirrel",
@@ -189,31 +189,24 @@ mammal_roadkill <- mammal_roadkill %>%
   ))
 
 
-# View the updated dataset
+#view the updated dataset
 head(mammal_roadkill)
 unique(mammal_roadkill$species)
 
 ```
 
-### Create new CSV file
-
-Now that I have finished with the data wrangling, I will create a new CSV file.
-
-```{r}
-write.csv(mammal_roadkill, "updated_roadkill.csv", row.names = FALSE)
-```
 
 ### Exploratory Data Visualisation
 
 #### Monthly reports
 
 ```{r}
-monthly_yearly_data <- mammal_roadkill %>%
+monthly_yearly_data <- mammal_roadkill %>% #group data by year and month and then count roadkill reports for that year-month combination
   group_by(year, month) %>%
   summarise(total_roadkill = n())
 
 monthly_yearly_data <- monthly_yearly_data %>%
-  mutate(month = factor(month, levels = 1:12, labels = month.name))
+  mutate(month = factor(month, levels = 1:12, labels = month.name)) #convert month to factor value
 
 print(monthly_yearly_data)
 
@@ -221,6 +214,7 @@ print(monthly_yearly_data)
 ```
 
 ```{r}
+#plot the trends over the year - colour = year
 p1 <- ggplot(monthly_yearly_data, aes(x = month, y = total_roadkill, group = year, color = factor(year))) +
   geom_line() +
   theme_minimal() +
@@ -238,12 +232,12 @@ p1
 ```{r}
 monthly_roadkill <- mammal_roadkill %>%
   group_by(year, month) %>%
-  summarise(reports = n(), .groups = "drop")
+  summarise(reports = n(), .groups = "drop") #group and summarise data
 
 monthly_roadkill <- monthly_roadkill %>%
-  mutate(date = as.Date(paste(year, month, 1, sep = "-")))
+  mutate(date = as.Date(paste(year, month, 1, sep = "-"))) #add a date column for easy plotting
 
-
+#plot trend in reports from 2014 to 2024 on one axis
 p2 <- ggplot(monthly_roadkill, aes(x = date, y = reports)) +
   geom_line(color = "black", linewidth = 0.5) +
   theme_minimal() +
@@ -263,8 +257,7 @@ p2
 Following the methods from Raymond et al. 2021, I scaled the data based on monthly proportions and then I subsampled it 10,000 times and took the mean.
 
 ```{r}
-library(dplyr)
-
+#scale the data of monthly totals based on percentages of annual totals
 scaled_data <- mammal_roadkill %>%
   group_by(species, year, month) %>%
   summarise(monthly_total = n(), .groups = "drop") %>%  
@@ -282,9 +275,9 @@ head(scaled_data)
 
 ```{r}
 
-set.seed(222) 
+set.seed(222) #for reproducibility
 
-adjusted_data <- scaled_data %>%
+adjusted_data <- scaled_data %>% #adjust monthly totals
   group_by(species) %>%
   mutate(adjusted_count = case_when(
     year == 2019 & month == 7 & monthly_total > 1 ~ round(monthly_total * 2 / 3), 
@@ -317,12 +310,12 @@ head(adjusted_data)
 Plot this adjusted data
 
 ```{r}
-total_adjusted_data <- adjusted_data %>%
+total_adjusted_data <- adjusted_data %>% #group and summarise ocunts and add date column 
   group_by(year, month) %>%
   summarise(total_reports = sum(mean_adjusted_count, na.rm = TRUE), .groups = "drop") %>%
   mutate(date = ymd(paste(year, month, "01", sep = "-")))
 
-
+#plot the adjusted data
 p3 <- ggplot(total_adjusted_data, aes(x = date, y = total_reports)) +
   geom_line(color = "black", linewidth = 0.5) +
   theme_minimal() +
@@ -343,7 +336,7 @@ I decided this still resulted in too big of a spike so I will remove July - Sept
 
 ```{r}
 
-mammal_roadkill_no_spike <- mammal_roadkill %>%
+mammal_roadkill_no_spike <- mammal_roadkill %>% #remove July and August 2019 
   filter(!(format(date, "%Y-%m") %in% c("2019-07", "2019-08", "2019-09")))
 
 ```
@@ -354,21 +347,21 @@ I will turn it into monthly values and then add blank rows for July - September 
 
 ```{r}
 
-monthly_no_spike <- mammal_roadkill_no_spike %>%
+monthly_no_spike <- mammal_roadkill_no_spike %>% #summarising monthly
   group_by(year, month) %>%
   summarise(total_roadkill = n())
 
-monthly_no_spike <- monthly_no_spike %>%
+monthly_no_spike <- monthly_no_spike %>% #add month names
   mutate(month = factor(month, levels = 1:12, labels = month.name))
 
 print(monthly_no_spike)
 
-imputed_rk <- monthly_no_spike %>%
+imputed_rk <- monthly_no_spike %>% #impute missing data
   mutate(month = factor(month, levels = month.name)) %>%
   group_by(month) %>%  
   mutate(monthly_mean = mean(total_roadkill, na.rm = TRUE),  
          value = ifelse(is.na(total_roadkill) & year == 2019, monthly_mean, total_roadkill)) %>%  
-  dplyr::select(-monthly_mean)  
+  dplyr::select(-monthly_mean) #delete temporary column
 
 print(imputed_rk)
 ```
@@ -377,13 +370,14 @@ Change of plan, I realised this won't work for what I need as I don't just want 
 
 ```{r}
 july_mean <- mammal_roadkill_no_spike %>%
-  filter(format(date, "%m") == "07") %>%  
+  filter(format(date, "%m") == "07") %>%  #filter for July data
   group_by(year = format(date, "%Y")) %>%  
-  summarise(july_count = n()) %>%  
-  summarise(mean_july_reports = mean(july_count, na.rm = TRUE)) 
+  summarise(july_count = n()) %>% #counts per year
+  summarise(mean_july_reports = mean(july_count, na.rm = TRUE)) #take the mean
 
 print(round(july_mean))
 
+#repeat the same for August and September
 aug_mean <- mammal_roadkill_no_spike %>%
   filter(format(date, "%m") == "08") %>%  
   group_by(year = format(date, "%Y")) %>%  
@@ -406,11 +400,12 @@ print(round(sept_mean))
 ```{r}
 set.seed(2108)
 random_sample_july_2019 <- mammal_roadkill %>%
-  filter(format(date, "%Y-%m") == "2019-07") %>%
-  sample_n(363)
+  filter(format(date, "%Y-%m") == "2019-07") %>% #filter for July 2019
+  sample_n(363) #randomly sample the number from the mean of Julys without July 2019
 
 print(random_sample_july_2019)
 
+#repeat for August and September
 set.seed(2108)
 random_sample_aug_2019 <- mammal_roadkill %>%
   filter(format(date, "%Y-%m") == "2019-08") %>%
@@ -429,7 +424,7 @@ print(random_sample_sept_2019)
 ### Add these into the dataset
 
 ```{r}
-mammal_no_spike <- mammal_roadkill_no_spike %>%
+mammal_no_spike <- mammal_roadkill_no_spike %>% #Add these to the dataset
   bind_rows(random_sample_july_2019, random_sample_aug_2019, random_sample_sept_2019) %>%
   arrange(date)
 
@@ -480,20 +475,20 @@ Load dataset, turn it into a table, filter to the years I am interested in and t
 ```{r}
 tempURL <- "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/Tmean/date/UK.txt"
 
-temp <- read.table(tempURL, header = TRUE, skip = 5, stringsAsFactors = FALSE)
+temp <- read.table(tempURL, header = TRUE, skip = 5, stringsAsFactors = FALSE) #turn data into a table and remove the first lines that are not part of the dataset
 
-filtered_temp <- temp %>%
+filtered_temp <- temp %>% #filter to only include 2014 - 2024
   filter(year >= 2014 & year <= 2024)
 
-data_long <- filtered_temp %>%
+data_long <- filtered_temp %>% #mutate from wide-format to long format
   pivot_longer(
     cols = jan:dec,  # Month columns
     names_to = "month",
     values_to = "mean_temperature"
   ) %>%
   mutate(
-    month = match(month, c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),  # Convert month to integer
-    year = as.numeric(year)  # Ensure year is numeric
+    month = match(month, c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")),  
+    year = as.numeric(year) 
   )
 
 ```
@@ -510,10 +505,10 @@ rain <- read.table(rainURL, header = TRUE, skip = 5, stringsAsFactors = FALSE)
 filtered_rain <- rain %>%
   filter(year >= 2014 & year <= 2024)
 
-# Step 5: Reshape the data from wide to long format
+
 long_rain <- filtered_rain %>%
   pivot_longer(
-    cols = jan:dec,  # Month columns
+    cols = jan:dec,  
     names_to = "month",
     values_to = "rainfall"
   ) %>%
@@ -528,10 +523,10 @@ long_rain <- filtered_rain %>%
 ```{r}
 t1 <- ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
   geom_smooth(se = FALSE, method = "loess", linewidth = 1) +
-  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
+  geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) + #lines to break up the seasons
   scale_x_continuous(
-    breaks = 1:12,  # Numeric positions (1 to 12 for months)
-    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # Month names
+    breaks = 1:12,  #position for 1 to 12 for months
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
   ) +
   labs(
     title = "Mean Temperature Over Months (2014-2024, UK)",
@@ -552,8 +547,8 @@ t2 <- ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = facto
   geom_smooth(se = FALSE, method = "loess", linewidth = 1) +
   geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
   scale_x_continuous(
-    breaks = 1:12,  # Numeric positions (1 to 12 for months)
-    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # Month names
+    breaks = 1:12,  
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  
   ) +
   labs(
     title = "Rainfall Over Months (2014-2024, UK)",
@@ -567,17 +562,17 @@ t2
 ```
 
 ```{r}
-t1/t2 + plot_layout(guides = "collect")
+t1/t2 + plot_layout(guides = "collect") #only one legend
 ```
 
 ## Combine roadkill and climate data
 
 ```{r}
-climate_data <- long_rain %>%
+climate_data <- long_rain %>% #combine rainfall data and roadkill
   full_join(data_long, by = c("year", "month"))
 
 
-roadkill_climate <- mammal_no_spike %>%
+roadkill_climate <- mammal_no_spike %>% #add climate data 
   left_join(climate_data, by = c("year", "month"))
 
 roadkill_climate <- roadkill_climate %>%
@@ -598,15 +593,15 @@ roadkill_with_climate <- roadkill_climate %>%
   dplyr::select(-win.x, -win.y, -spr.x, -spr.y, -sum.x, -sum.y, -aut.x, -aut.y)
 
 
-roadkill_counts <- roadkill_with_climate %>%
+roadkill_counts <- roadkill_with_climate %>% #summarise counts 
   group_by(year, month) %>%
   summarise(roadkill_count = n(), .groups = "drop")
 
-roadkill_with_climate <- roadkill_counts %>%
+roadkill_with_climate <- roadkill_counts %>% #join counts and climate data
   left_join(climate_data, by = c("year", "month"))
 
 
-get_season <- function(month) {
+get_season <- function(month) { #add season
   if (month %in% c(12, 1, 2)) {
     return("Winter")
   } else if (month %in% c(3, 4, 5)) {
@@ -625,7 +620,7 @@ roadkill_with_climate <- roadkill_with_climate %>%
   mutate(season = sapply(month, get_season))
 
 roadkill_with_climate$season <- factor(roadkill_with_climate$season, 
-                                       levels = c("Winter", "Spring", "Summer", "Autumn"))
+                                       levels = c("Winter", "Spring", "Summer", "Autumn")) #convert to factor
 ```
 
 ## Seasonal Trends
@@ -665,19 +660,19 @@ ggplot(seasonal_data, aes(x = season, y = Count)) +
 Determine which model to use
 
 ```{r}
-# Model 1: Year only
+#year only
 model_year <- glm.nb(Count ~ year, data = seasonal_data)
 
-# Model 2: Season only
+#season only
 model_season <- glm.nb(Count ~ season, data = seasonal_data)
 
-# Model 3: Both Year and Season
+#both year and season
 model_both <- glm.nb(Count ~ year + season, data = seasonal_data)
 
-# Model 4: Year and Season with Interaction
+#year and season with interaction
 model_interaction <- glm.nb(Count ~ year * season, data = seasonal_data)
 
-# Compare models using AIC
+#compare models using AIC
 AIC(model_year, model_season, model_both, model_interaction)
 
 lrt_year_vs_season <- anova(model_year, model_season, test = "Chisq")
@@ -690,9 +685,7 @@ lrt_both_vs_interaction <- anova(model_both, model_interaction, test = "Chisq")
 ### Creating a table for report
 
 ```{r}
-
-
-
+#set up dataframe for table
 model_comparison <- data.frame(
   Model = c("Year", "Season", "Year + Season", "Year * Season"),
   AIC = c(AIC(model_year),
@@ -719,8 +712,7 @@ model_comparison <- data.frame(
 
 
 
-
-ft <- model_comparison %>%
+ft <- model_comparison %>% #use flextable to form table
   mutate(P_Value = ifelse(P_Value < 0.01, "<0.01", as.character(round(P_Value, 2)))) %>%
   flextable() %>%
   colformat_double(j = c(2:6), digits = 2) %>% 
@@ -744,17 +736,17 @@ summary(model_season)
 I decided to make an interactive map of the roadkill reports per region in the uk.
 
 ```{r}
-uk_regions <- st_read("ITL2_JAN_2025_UK_BFE.shp")
+uk_regions <- st_read("ITL2_JAN_2025_UK_BFE.shp") #upload shapefile
 
 
-roadkill_sf <- mammal_no_spike %>%
+roadkill_sf <- mammal_no_spike %>% #change crs type
   st_as_sf(coords = c("long", "lat"), crs = 4326)  
 
 
-uk_regions <- st_transform(uk_regions, crs = 4326)
+uk_regions <- st_transform(uk_regions, crs = 4326) #match crs type
 
 
-roadkill_with_regions <- st_join(roadkill_sf, uk_regions, join = st_intersects)
+roadkill_with_regions <- st_join(roadkill_sf, uk_regions, join = st_intersects) #join regions and roadkill
 
 print(names(uk_regions))
 
@@ -766,7 +758,7 @@ spatial_trends_map <- uk_regions %>%
   mutate(NAME = as.character(ITL225NM)) %>% 
   left_join(as.data.frame(spatial_trends), by = "ITL225NM")
 
-tmap_mode("view")
+tmap_mode("view") #interactive map 
 m1 <- tm_shape(spatial_trends_map) +
   tm_polygons("roadkill_count", 
               title = "Roadkill Reports", 
@@ -780,7 +772,7 @@ m1
 Static map to include in report
 
 ```{r}
-tmap_mode("plot")
+tmap_mode("plot") #static map
 
 m2 <- tm_shape(spatial_trends_map) +
   tm_polygons("roadkill_count", 
@@ -823,7 +815,7 @@ ggplot(roadkill_sf) +
 Test normality
 
 ```{r}
-hist(spatial_trends_map$roadkill_count, xlab = "Counts", breaks = 10)
+hist(spatial_trends_map$roadkill_count, xlab = "Counts", breaks = 10) #histogram of data
 
 qqnorm(spatial_trends_map$roadkill_count) 
 qqline(spatial_trends_map$roadkill_count, col = "red")
@@ -832,7 +824,7 @@ qqline(spatial_trends_map$roadkill_count, col = "red")
 Check for overdispersion
 
 ```{r}
-# Check mean and variance
+
 mean_count <- mean(spatial_trends_map$roadkill_count)
 var_count <- var(spatial_trends_map$roadkill_count)
 print(mean_count)
@@ -841,59 +833,17 @@ print(var_count)
 ```
 
 ```{r}
-poisson_model <- glm(roadkill_count ~ NAME, family = poisson(link = "log"), data = spatial_trends_map)
+poisson_model <- glm(roadkill_count ~ NAME, family = poisson(link = "log"), data = spatial_trends_map) #glm using poisson family
 
 dispersion <- sum(residuals(poisson_model, type = "pearson")^2) / df.residual(poisson_model)
-print(dispersion)
+print(dispersion) #calculate overdispersion
 
 plot(poisson_model)
 ```
 
-```{r}
-str(spatial_trends_map)
-
-# Remove geometry columns for modeling
-region_data <- st_drop_geometry(spatial_trends_map)
-region_data$NAME <- as.factor(region_data$NAME)
-region_data$roadkill_count <- as.numeric(region_data$roadkill_count)
-
-# Check for missing values
-colSums(is.na(region_data))
-
-# Remove rows with missing values
-region_data <- na.omit(region_data)
-
-# Check for infinite values
-sum(is.infinite(region_data$roadkill_count))  # Should be 0
-
-# Check for NaN values
-sum(is.nan(region_data$roadkill_count))  # Should be 0
-
-region_data <- region_data %>% dplyr::select (NAME, roadkill_count)
-
-str(region_data)
-
-
-library(forcats)
-region_data$NAME <- fct_lump(region_data$NAME, n = 10)  # Keep top 20 levels, lump others into "Other"
-table(region_data$NAME)
-
-
-# Check levels of NAME
-levels(region_data$NAME)
-
-library(MASS)
-simple_nb <- glm.nb(roadkill_count ~ 1, data = region_data)
-summary(simple_nb)
-
-
-region_nb <- glm.nb(roadkill_count ~ NAME, data = region_data)
-
-plot(region_nb)
-```
 
 ```{r}
-region_data$region_group <- ifelse(region_data$NAME %in% c(
+region_data$region_group <- ifelse(region_data$NAME %in% c( #group regions into "North" etc
   "Tees Valley", 
   "Northumberland, Durham and Tyne & Wear", 
   "Cumbria", 
@@ -950,52 +900,36 @@ ifelse(region_data$NAME %in% c(
 ), "Scotland",
  ifelse(region_data$NAME %in% c("Northern Ireland"), "Northern Ireland", NA))))))
 
-# Convert to factor for modeling
-region_data$region_group <- as.factor(region_data$region_group)
+region_data$region_group <- as.factor(region_data$region_group) #convert to factor
 
-# Check group sizes
-table(region_data$region_group)
+table(region_data$region_group) #group sizes
 
 ```
 
 ```{r}
-nb_model <- glm.nb(roadkill_count ~ region_group, data = region_data)
+nb_model <- glm.nb(roadkill_count ~ region_group, data = region_data) #moel for roadkill vs region
 
 summary(nb_model)
 
 par(mfrow = c(2,2))
-plot(nb_model)
+plot(nb_model) #diagnostic plots
 ```
 
-```{r}
-# Predicted mean counts
-region_data$predicted <- predict(nb_model, type = "response")
-
-# Bar plot of predicted counts
-ggplot(region_data, aes(x = region_group, y = predicted)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(title = "Predicted Roadkill Counts by Region Group",
-       x = "Region Group", y = "Predicted Roadkill Count") +
-  theme_minimal()
-
-```
 
 ```{r}
-# Pairwise comparisons between region groups
-pairwise_results <- emmeans(nb_model, pairwise ~ region_group, type = "response")
+pairwise_results <- emmeans(nb_model, pairwise ~ region_group, type = "response") #pairwise comparisons between region groups
 
-# View results
 summary(pairwise_results)
 
 ```
 
 ```{r}
-emmeans_table <- as.data.frame(pairwise_results$emmeans) %>%
+emmeans_table <- as.data.frame(pairwise_results$emmeans) %>% #layout for table for report
   mutate(
-    response = round(response, 2),          # Round Predicted Count
-    SE = round(SE, 2),                     # Round Standard Error
-    asymp.LCL = round(asymp.LCL, 2),       # Round CI Lower
-    asymp.UCL = round(asymp.UCL, 2)        # Round CI Upper
+    response = round(response, 2),          
+    SE = round(SE, 2),                     
+    asymp.LCL = round(asymp.LCL, 2),       
+    asymp.UCL = round(asymp.UCL, 2)        
   ) %>%
   rename(
     `Region Group` = region_group,
@@ -1006,7 +940,7 @@ emmeans_table <- as.data.frame(pairwise_results$emmeans) %>%
   )
 
 
-et <- emmeans_table %>%
+et <- emmeans_table %>% #flextable
   flextable() %>%
   colformat_double(j = c("Predicted Count", "Standard Error", "95% CI (Lower)", "95% CI (Upper)"), digits = 2) %>% 
   align(align = 'center', part = 'header') %>% 
@@ -1020,29 +954,16 @@ et
 
 ```{r}
 
-
-# Scatter plot with regression line
-ggscatter(roadkill_with_climate, x = "mean_temperature", y = "roadkill_count",
-          add = "reg.line", conf.int = TRUE,
-          cor.coef = TRUE, cor.method = "pearson",
-          xlab = "Temperature (°C)", ylab = "Roadkill Count")
-
-
-ggscatter(roadkill_with_climate, x = "rainfall", y = "roadkill_count",
-          add = "reg.line", conf.int = TRUE,
-          cor.coef = TRUE, cor.method = "pearson",
-          xlab = "Rainfall (cm)", ylab = "Roadkill Count")
-
-# Linear regression model
+#try linear regression model
 model <- lm(roadkill_count ~ mean_temperature + rainfall, data = roadkill_with_climate)
 
-# Summary of the model
+
 summary(model)
 
 par(mfrow = c(2, 2))
-plot(model)
+plot(model) #check diagnostic plots
 ```
-
+Data definitely not normal so use a glm instead - decide between poisson and negative binomial
 ```{r}
 glm_poisson_climate <- glm(roadkill_count ~ mean_temperature + rainfall, family = poisson, data = roadkill_with_climate)
 
@@ -1065,20 +986,25 @@ plot(glm_nb_climate)
 ```
 
 ```{r}
-#Temperature
-ggplot(roadkill_with_climate, aes(x = mean_temperature, y = roadkill_count)) +
+#plot temperature - scatterplot with regression line
+temp_rk <- ggplot(roadkill_with_climate, aes(x = mean_temperature, y = roadkill_count)) +
   geom_point(alpha = 0.5) +
   stat_smooth(method = "glm.nb", se = TRUE) +  
   labs(title = "Effect of Temperature on Roadkill Counts",
        x = "Temperature (°C)",
        y = "Roadkill Count")
 
-#Rain
-ggplot(roadkill_with_climate, aes(x = rainfall, y = roadkill_count)) +
+temp_rk
+```
+
+```{r}
+#same for rain
+rain_rk <- ggplot(roadkill_with_climate, aes(x = rainfall, y = roadkill_count)) +
   geom_point(alpha = 0.5) +
   stat_smooth(method = "glm.nb", se = TRUE) +  
   labs(title = "Effect of Rainfall on Roadkill Counts",
        x = "Rainfall (mm)",
        y = "Roadkill Count")
 
+rain_rk
 ```
