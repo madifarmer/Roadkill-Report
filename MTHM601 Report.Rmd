@@ -21,7 +21,7 @@ knitr::opts_chunk$set(fig.align='center', out.width='80%', fig.pos='H')
 
 ## Introduction
 
-**Topics:** Data Wrangling, Advanced Visualisation, RMarkdown, Hierarchical Modelling, Spatial Visualisation, Temporal Trends, GitHub
+**Topics:** Data Wrangling, Advanced Visualisation, RMarkdown, Data Analysis, Spatial Visualisation, Temporal Trends, GitHub
 
 With the ever-changing climate, British wildlife face an uncertain future, with a major decline in biodiversity being found all around the United Kingdom [@biodiver; @lambertini]. But another thing that could be adding to the decline in British wildlife is road-traffic-accidents; collisions with vehicles is one of the major causes of wild animal death in the UK [@raymond_temporal_2021]. For animals that are already under immense pressure due to anthropogenic and climate threats, roadkill could push some of these species to extinction.
 
@@ -35,11 +35,11 @@ By utilising data collected by citizen scientists, the three main questions I am
 
 1.  What are the seasonal trends in mammalian roadkill numbers?
 
-2.  Do temperature or rainfall play a role in mammalian roadkill prevalence?
+2.  Where are the mammalian roadkill hotspots across the UK?
 
-3.  Where are the mammalian roadkill hotspots across the UK?
+3.  Do temperature or rainfall play a role in mammalian roadkill prevalence?
 
-Using advanced data science techniques, including hierarchical modelling, spatial visualisation and temporal analysis, this study provides a detailed examination of roadkill patterns. Through these analyses, it aims to shed light on the interconnected nature of ecological processes and human activities, emphasising the need for coexistence between humans and wildlife.
+Using advanced data science techniques, including spatial visualisation and temporal analysis, this study provides a detailed examination of roadkill patterns. Through these analyses, it aims to shed light on the interconnected nature of ecological processes and human activities, emphasising the need for coexistence between humans and wildlife.
 
 ## Methodology
 
@@ -73,15 +73,15 @@ To explore the influence of environmental factors on roadkill counts, a GLM was 
 
 The data I will use is from [The Road Lab](https://www.theroadlab.co.uk/) (formerly 'Project Splatter')[@noauthor_road_nodate], it is a citizen science project with 57 columns and 68,212 rows of data. The dataset includes mammals, birds, amphibians and reptiles but, as this report is only interested in mammals, all rows corresponding with other Classes will be removed. I also removed any rows that had blank entries in any of my columns of interest.
 
-Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were also removed as they were not to a species level. Some records were grouped under one standardised species name, "Eastern Grey Squirrel" and "Squirrel" became "Grey Squirrel" because Red Squirrels (*Sciurus vulgaris*) are rare in most parts of the UK so these records were separated from those of "Red Squirrel", the same goes for "Brown Rat" and "Rat spp." because Black Rats (*Rattus rattus*) are also very rare so any records were assumed to be Brown Rats (*Rattus norvegicus*). I also grouped all mouse, bat, vole and hare records into their respective group rather than species level.
+Data was collected between 01/01/2014 until 30/09/2024 but as there was only one entry and it was not the complete year, data from 2024 was removed. There were several recordings of “indet. Deer”, "rabbits and hares" and a "Polecat-Ferret" which were also removed as they were not to a species level. Some records were grouped under one standardised species name, "Eastern Grey Squirrel" and "Squirrel" became "Grey Squirrel" because Red Squirrels (*Sciurus vulgaris*) are rare in most parts of the UK so these records were separated from those of "Red Squirrel", the same goes for "Brown Rat" and "Rat spp." because Black Rats (*Rattus rattus*) are also very rare so any records were assumed to be Brown Rats (*Rattus norvegicus*). I also grouped all mouse, bat, vole and hare records into their respective group rather than species level. This cleaned the dataset ready for the analysis in this report and future directions also.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{images/clipboard-2178438044.png}
-\caption{Graph showing total monthly roadkill reports from January 2014 to January 2024, showing (a) the spike in reports in July - September 2019. (b) after scaling and sub-sampling the inflated reports from July - September 2019. And (c) after taking a random sample of the reports from July - September 2019 that were equal to the means from those months in the other years.}
+\caption{Graph showing total monthly roadkill reports from January 2014 to January 2024, showing (a) the spike in reports in July - September 2019. (b) after scaling and sub-sampling the inflated reports from those months. And (c) adjusted data after random subsampling to align with typical monthly trends.}
 \end{figure}
 
-It is important to note that there is a large spike in reports in July and August 2019 (figure 1a), I have decided try to scale it in line with reports from other years, as it is not likely to reflect an actual massive increase in roadkill but it likely a result of increased news coverage on the project [@badgers2019]. I followed the methods from Raymond et al's [@raymond_temporal_2021] paper for this but I feel that it still left a spike too large to be representative (figure 1b) of the actual roadkill numbers, ultimately leading to the removal of the reports from July and August 2019. I then calculated the mean number of roadkill reports for July, August and September separately, not including 2019 values. Once I had the means, I randomly selected that number from the 2019 reports for each month and removed the rest from those months (figure 1c). This was the only solution I could think of that kept the majority of the data without skewing the seasonal trends in roadkill. Once the data was cleaned and all unneeded data was removed, I was left with 39130 entries. I also created a separate dataset that combined the reports for each month to create a monthly count of roadkill reports for some of the plots and analyses.
+It is important to note that there is a large spike in reports in July and August 2019 (figure 1a), I have decided try to scale it in line with reports from other years, as it is not likely to reflect an actual massive increase in roadkill but it likely a result of increased news coverage on the project [@badgers2019]. I followed the methods from Raymond et al's [@raymond_temporal_2021] paper for this but I feel that it still left a spike too large to be representative (figure 1b) of the actual roadkill numbers, ultimately leading to the removal of the reports from July and August 2019. I then calculated the mean number of roadkill reports for July, August and September separately, not including 2019 values. Once I had the means, I randomly selected that number from the 2019 reports for each month and removed the rest from those months (figure 1c). This was the only solution I could think of that kept the majority of the data without skewing the seasonal trends in roadkill. Once the data was cleaned and all unneeded data was removed, I was left with 39230 entries. I also created a separate dataset that combined the reports for each month to create a monthly count of roadkill reports for some of the plots and analyses.
 
 I also added a column to the dataset encompassing season. The seasons were categorised based on the UK Meteorological Office meteorological season definitions [@seasons]: March, April and May are were classified as "Spring"; June, July and August as "Summer"; September, October and November as"Autumn" and December, January and February as "Winter".
 
@@ -94,7 +94,7 @@ To prepare the data for analysis, some wrangling was required. First, I filtered
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{images/clipboard-3574748003.png}
-\caption{Plot of (a) mean monthly temperature and (b) mean monthly rainfall. Colour coded by year.}
+\caption{Plot of (a) mean monthly temperature (°C) and (b) mean monthly rainfall (mm) across the UK. Colour coded by year, demonstrating inter-annual variations in climate variables over the study period.}
 \end{figure}
 
 ## Results
@@ -110,7 +110,7 @@ Four negative binomial Generalised Linear models were fitted to evaluate the eff
 | Year + Season  | 585.91 | -286.95 | 6   | 0.82    | 0.36       |
 | Year \* Season | 590.42 | -286.21 | 9   | 1.48    | 0.69       |
 
-: Summary of the models along with comparison stats and P values.
+: Model comparison for seasonal effects on roadkill counts using negative binomial generalized linear models.
 
 The chosen negative binomial model suggested that winter had significantly lower roadkill counts compared to the reference season, Autumn (p = 0.0237). No significant differences were observed for Spring (p = 0.2993) or Summer (p = 0.3419) relative to Autumn. This suggests that roadkill counts are relatively stable across spring, summer, and autumn, but decrease significantly in winter (figure 3).
 
@@ -125,7 +125,7 @@ The chosen negative binomial model suggested that winter had significantly lower
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{images/clipboard-2388807814.png}
-\caption{Static map showing roadkill counts per region in the UK.}
+\caption{Static map showing roadkill counts per region in the UK.Darker colours represent higher roadkill report counts.}
 \end{figure}
 
 Code for an interactive version of this map is available in my GitHub **([here](https://github.com/madifarmer/Roadkill-Report/blob/main/Interactive%20map.Rmd)).**
@@ -141,7 +141,7 @@ Any values above 1 show over-dispersion, for a Poisson GLM using this data, the 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{images/clipboard-3714850432.png}
-\caption{Diagnostic plots for the negative binomial GLM.}
+\caption{Diagnostic plots for the negative binomial GLM looking at variation of roadkill numbers based on region.}
 \end{figure}
 
 Regions were grouped into North, South, Midlands, Scotland, Wales and Northern Ireland for analysis. The negative binomial GLM revealed no significant differences in roadkill counts across most of these groups, except for one. Relative to the midlands, the North had significantly fewer roadkill counts ($\beta$ = -1.034, p = 0.025). Using estimated marginal means, the predicted mean roadkill counts for each region group (back-transformed from the log scale) were computed (table 2). The Midlands had the highest predicted mean count and the North had the lowest predicted.
@@ -155,7 +155,7 @@ Regions were grouped into North, South, Midlands, Scotland, Wales and Northern I
 | South | 1043.67 | 234.83 | Inf | 671.49 | 1622.14 |
 | Wales | 1347.33 | 742.49 | Inf | 457.50 | 3967.88 |
 
-: Table of estimated means for the grouped regions
+: Predicted mean roadkill counts for grouped regions based on the negative binomial GLM. The Midlands region shows the highest predicted counts, while the North shows the lowest. Confidence intervals reflect back-transformed log scale predictions.
 
 Pairwise comparisons between the grouped regions were performed to assess specific differences. After applying Tukey adjustments for multiple comparisons, the difference between the North and Midlands are marginally significant (p = 0.092) but there were no other significant comparisons between any of the other groups.
 
@@ -166,7 +166,7 @@ Generalised Linear Model with a poisson family was used due to the response vari
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{images/clipboard-126776836.png}
-\caption{Effect of temperature on roadkill counts.}
+\caption{Effect of mean temperature on roadkill counts. The regression line represents the fitted negative binomial GLM, showing the positive relationship between temperature and roadkill counts.}
 \end{figure}
 
 Similarly, a 1mm increase in rainfall is associated with a 0.29% decrease in roadkill counts (figure 7). The model shows a significant negative relationship between rainfall and roadkill ($z-value$ = -2.752, p-value = 0.0059), which could be explained by a reduction in animal movement during heavy rain or reduced vehicle speeds, giving drivers more time to avoid animals on the road.
@@ -174,7 +174,7 @@ Similarly, a 1mm increase in rainfall is associated with a 0.29% decrease in roa
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{images/clipboard-2669297237.png}
-\caption{Effect of rainfall on roadkill counts.}
+\caption{Effect of rainfall on roadkill counts. The regression line represents the fitted negative binomial GLM, showing the negative relationship between rainfall and roadkill counts.}
 \end{figure}
 
 ## Limitations
