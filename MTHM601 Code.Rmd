@@ -26,6 +26,8 @@ library(spatstat)
 library(flextable)
 library(MASS)
 library(lme4)
+library(emmeans)
+
 ```
 
 ## Load Roadkill dataset
@@ -524,7 +526,7 @@ long_rain <- filtered_rain %>%
 ### Plot temperature
 
 ```{r}
-ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
+t1 <- ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = factor(year))) +
   geom_smooth(se = FALSE, method = "loess", linewidth = 1) +
   geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
   scale_x_continuous(
@@ -539,12 +541,14 @@ ggplot(data_long, aes(x = month, y = mean_temperature, group = year, color = fac
   ) +
   theme_minimal()
 
+t1
+
 ```
 
 #### Plot rain
 
 ```{r}
-ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year))) +
+t2 <- ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year))) +
   geom_smooth(se = FALSE, method = "loess", linewidth = 1) +
   geom_vline(xintercept = c(2.5, 5.5, 8.5, 11.5), linetype = "dashed", color = "black", linewidth = 0.8) +
   scale_x_continuous(
@@ -554,11 +558,16 @@ ggplot(long_rain, aes(x = month, y = rainfall, group = year, color = factor(year
   labs(
     title = "Rainfall Over Months (2014-2024, UK)",
     x = "Month",
-    y = "Rainfall",
+    y = "Rainfall (mm)",
     color = "Year"
   ) +
   theme_minimal()
 
+t2
+```
+
+```{r}
+t1/t2 + plot_layout(guides = "collect")
 ```
 
 ## Combine roadkill and climate data
@@ -714,8 +723,8 @@ model_comparison <- data.frame(
 ft <- model_comparison %>%
   mutate(P_Value = ifelse(P_Value < 0.01, "<0.01", as.character(round(P_Value, 2)))) %>%
   flextable() %>%
-  colformat_double(j = c(2:6), digits = 2) %>% # round numbers of specific columns to 2 decimal places
-  align(align = 'center', part = 'header') %>% # align column names centrally
+  colformat_double(j = c(2:6), digits = 2) %>% 
+  align(align = 'center', part = 'header') %>% 
   align(align = 'center', part = 'body') %>%
   bold(~P_Value == "<0.01", j = "P_Value")
 
@@ -837,14 +846,174 @@ poisson_model <- glm(roadkill_count ~ NAME, family = poisson(link = "log"), data
 dispersion <- sum(residuals(poisson_model, type = "pearson")^2) / df.residual(poisson_model)
 print(dispersion)
 
+plot(poisson_model)
 ```
 
 ```{r}
-region_data <- spatial_trends_map[complete.cases(spatial_trends_map), ]
+str(spatial_trends_map)
+
+# Remove geometry columns for modeling
+region_data <- st_drop_geometry(spatial_trends_map)
+region_data$NAME <- as.factor(region_data$NAME)
+region_data$roadkill_count <- as.numeric(region_data$roadkill_count)
+
+# Check for missing values
+colSums(is.na(region_data))
+
+# Remove rows with missing values
+region_data <- na.omit(region_data)
+
+# Check for infinite values
+sum(is.infinite(region_data$roadkill_count))  # Should be 0
+
+# Check for NaN values
+sum(is.nan(region_data$roadkill_count))  # Should be 0
+
+region_data <- region_data %>% dplyr::select (NAME, roadkill_count)
+
+str(region_data)
+
+
+library(forcats)
+region_data$NAME <- fct_lump(region_data$NAME, n = 10)  # Keep top 20 levels, lump others into "Other"
+table(region_data$NAME)
+
+
+# Check levels of NAME
+levels(region_data$NAME)
+
+library(MASS)
+simple_nb <- glm.nb(roadkill_count ~ 1, data = region_data)
+summary(simple_nb)
 
 
 region_nb <- glm.nb(roadkill_count ~ NAME, data = region_data)
 
+plot(region_nb)
+```
+
+```{r}
+region_data$region_group <- ifelse(region_data$NAME %in% c(
+  "Tees Valley", 
+  "Northumberland, Durham and Tyne & Wear", 
+  "Cumbria", 
+  "Greater Manchester", 
+  "Lancashire", 
+  "Cheshire", 
+  "Merseyside", 
+  "North Yorkshire", 
+  "South Yorkshire", 
+  "West Yorkshire", 
+  "East Yorkshire and Northern Lincolnshire"
+), "North",
+ifelse(region_data$NAME %in% c(
+  "Derbyshire and Nottinghamshire", 
+  "Leicestershire, Rutland and Northamptonshire", 
+  "Lincolnshire", 
+  "Herefordshire, Worcestershire and Warwickshire", 
+  "Shropshire and Staffordshire", 
+  "West Midlands", 
+  "Gloucestershire and Wiltshire"
+), "Midlands",
+ifelse(region_data$NAME %in% c(
+  "Bedfordshire and Hertfordshire", 
+  "Essex", 
+  "Cambridgeshire and Peterborough", 
+  "Norfolk", 
+  "Suffolk", 
+  "Berkshire, Buckinghamshire and Oxfordshire", 
+  "Surrey, East and West Sussex", 
+  "Hampshire and Isle of Wight", 
+  "Kent", 
+  "Cornwall and Isles of Scilly", 
+  "Devon", 
+  "West of England", 
+  "North Somerset, Somerset and Dorset", 
+  "Outer London - East and North East", 
+  "Outer London - South", 
+  "Outer London - West and North West", 
+  "Inner London - East", 
+  "Inner London - West"
+), "South",
+ifelse(region_data$NAME %in% c(
+  "North Wales", 
+  "Mid and South West Wales", 
+  "South East Wales"
+), "Wales",
+ifelse(region_data$NAME %in% c(
+  "Eastern Scotland", 
+  "East Central Scotland", 
+  "Highlands and Islands", 
+  "West Central Scotland", 
+  "North Eastern Scotland", 
+  "Southern Scotland"
+), "Scotland",
+ ifelse(region_data$NAME %in% c("Northern Ireland"), "Northern Ireland", NA))))))
+
+# Convert to factor for modeling
+region_data$region_group <- as.factor(region_data$region_group)
+
+# Check group sizes
+table(region_data$region_group)
+
+```
+
+```{r}
+nb_model <- glm.nb(roadkill_count ~ region_group, data = region_data)
+
+summary(nb_model)
+
+par(mfrow = c(2,2))
+plot(nb_model)
+```
+
+```{r}
+# Predicted mean counts
+region_data$predicted <- predict(nb_model, type = "response")
+
+# Bar plot of predicted counts
+ggplot(region_data, aes(x = region_group, y = predicted)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Predicted Roadkill Counts by Region Group",
+       x = "Region Group", y = "Predicted Roadkill Count") +
+  theme_minimal()
+
+```
+
+```{r}
+# Pairwise comparisons between region groups
+pairwise_results <- emmeans(nb_model, pairwise ~ region_group, type = "response")
+
+# View results
+summary(pairwise_results)
+
+```
+
+```{r}
+emmeans_table <- as.data.frame(pairwise_results$emmeans) %>%
+  mutate(
+    response = round(response, 2),          # Round Predicted Count
+    SE = round(SE, 2),                     # Round Standard Error
+    asymp.LCL = round(asymp.LCL, 2),       # Round CI Lower
+    asymp.UCL = round(asymp.UCL, 2)        # Round CI Upper
+  ) %>%
+  rename(
+    `Region Group` = region_group,
+    `Predicted Count` = response,
+    `Standard Error` = SE,
+    `95% CI (Lower)` = asymp.LCL,
+    `95% CI (Upper)` = asymp.UCL
+  )
+
+
+et <- emmeans_table %>%
+  flextable() %>%
+  colformat_double(j = c("Predicted Count", "Standard Error", "95% CI (Lower)", "95% CI (Upper)"), digits = 2) %>% 
+  align(align = 'center', part = 'header') %>% 
+  align(align = 'center', part = 'body') %>%
+  autofit()
+
+et
 ```
 
 ## Role of temp and rainfall
@@ -874,87 +1043,42 @@ par(mfrow = c(2, 2))
 plot(model)
 ```
 
-GAM
+```{r}
+glm_poisson_climate <- glm(roadkill_count ~ mean_temperature + rainfall, family = poisson, data = roadkill_with_climate)
+
+summary(glm_poisson_climate)
+
+climate_dispersion <- sum(residuals(glm_poisson_climate, type = "pearson")^2) / df.residual(glm_poisson_climate)
+
+climate_dispersion
+```
+
+Because it is over-dispersed, I will use a negative binomial family instead
 
 ```{r}
-gam_model <- gam(roadkill_count ~ rainfall + mean_temperature + season,
-                 data = roadkill_with_climate,
-                 family = poisson(link = "log"))  
+glm_nb_climate <- glm.nb(roadkill_count ~ mean_temperature + rainfall, data = roadkill_with_climate)
 
+summary(glm_nb_climate)
 
-# Summary of the model
-summary(gam_model)
-
-# Check diagnostics
 par(mfrow = c(2, 2))
-gam.check(gam_model)
-
+plot(glm_nb_climate)
 ```
 
 ```{r}
-gam_model <- gam(roadkill_count ~ te(rainfall, mean_temperature) + season,
-                 data = roadkill_with_climate,
-                 family = poisson(link = "log"))
+#Temperature
+ggplot(roadkill_with_climate, aes(x = mean_temperature, y = roadkill_count)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(method = "glm.nb", se = TRUE) +  
+  labs(title = "Effect of Temperature on Roadkill Counts",
+       x = "Temperature (°C)",
+       y = "Roadkill Count")
 
-summary(gam_model)
-```
-
-```{r}
-glmer_model <- glmer(roadkill_count ~ mean_temperature + rainfall + (1 | NAME), 
-                     family = poisson(link = "log"), data = roadkill_with_climate)
-summary(glmer_model)
-
-```
-
-### Identifying hotspots
-
-```{r}
-
-
-# Convert roadkill data to spatial points
-roadkill_points <- st_as_sf(mammal_no_spike, coords = c("long", "lat"), crs = 4326)
-
-# Convert to spatstat ppp object
-roadkill_ppp <- as.ppp(st_coordinates(roadkill_points), W = as.owin(uk_regions))
-
-library(sf)
-library(spatstat)
-library(spdep)
-library(ggplot2)
-library(viridis)
-
-# Reproject roadkill_points to a projected CRS (e.g., British National Grid: EPSG 27700)
-roadkill_points_proj <- st_transform(roadkill_points, crs = 27700)
-
-# Convert to spatstat ppp object
-coords_proj <- st_coordinates(roadkill_points_proj)  # Extract projected coordinates
-uk_regions_proj <- st_transform(uk_regions, crs = 27700)  # Ensure same CRS for region data
-win <- as.owin(st_bbox(uk_regions_proj))  # Create a window object for UK regions
-roadkill_ppp <- as.ppp(coords_proj, W = win)
-
-# Perform kernel density estimation
-roadkill_density <- density(roadkill_ppp, sigma = 1000)
-
-# Plot the density map
-plot(roadkill_density, main = "Kernel Density of Roadkill Incidents")
-
-# Convert roadkill points to neighbors
-neighbors <- knearneigh(coords_proj, k = 8)
-nb <- knn2nb(neighbors)
-
-# Compute Getis-Ord Gi* statistic
-roadkill_points_proj$roadkill_count <- 1  # Each row is one roadkill
-gi_star <- localG(roadkill_points_proj$roadkill_count, nb)
-
-# Add hotspot scores to roadkill points
-roadkill_points_proj$hotspot_score <- as.numeric(gi_star)
-
-# Visualize hotspots
-ggplot() +
-  geom_sf(data = uk_regions_proj, fill = "white") +
-  geom_point(data = roadkill_points_proj, aes(x = coords_proj[,1], y = coords_proj[,2], color = hotspot_score)) +
-  scale_color_viridis_c(option = "D") +
-  labs(title = "Roadkill Hotspots Across the UK", color = "Hotspot Score") +
-  theme_minimal()
+#Rain
+ggplot(roadkill_with_climate, aes(x = rainfall, y = roadkill_count)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(method = "glm.nb", se = TRUE) +  
+  labs(title = "Effect of Rainfall on Roadkill Counts",
+       x = "Rainfall (mm)",
+       y = "Roadkill Count")
 
 ```
